@@ -1,0 +1,41 @@
+{
+  "name": "goldenpays-ltd-corporate-site",
+  "version": "1.0.0",
+  "description": "Corporate website for GOLDENPAYS LTD - Enterprise IT Infrastructure & Strategic Financial Management",
+  "author": "GOLDENPAYS LTD",
+  "license": "UNLICENSED",
+  "private": true,
+  "keywords": [
+    "IT infrastructure",
+    "cloud architecture",
+    "financial management",
+    "enterprise advisory",
+    "UK consultancy"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "private"
+  },
+  "scripts": {
+    "dev": "vite --port 3000",
+    "build": "vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.4",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.4.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
