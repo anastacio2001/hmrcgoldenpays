@@ -33,8 +33,11 @@ app.use(helmet({
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
   'https://hmrcgoldenpays.vercel.app',
+  'https://goldenpays.uk',
+  'https://www.goldenpays.uk',
   'https://hmrcgoldenpays-git-main-ladislau-segunda-anastacios-projects.vercel.app',
-  /^https:\/\/hmrcgoldenpays-.*\.vercel\.app$/
+  /^https:\/\/hmrcgoldenpays-.*\.vercel\.app$/,
+  /^https:\/\/.*\.goldenpays\.uk$/
 ];
 
 const corsOptions = {
