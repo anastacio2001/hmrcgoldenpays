@@ -55,12 +55,6 @@ const AdminLogin: React.FC = () => {
           </div>
           
           <div className="p-8">
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-100 text-blue-800 text-xs leading-relaxed">
-              <strong>DEMO CREDENTIALS:</strong><br/>
-              Email: admin@goldenpays.uk<br/>
-              Password: GoldenPays2026!
-            </div>
-
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Email Address</label>
