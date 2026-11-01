@@ -42,6 +42,20 @@ VITE_STRIPE_LINK_INTEGRATION  VITE_STRIPE_LINK_CLOUD
 
 When a link is not set, its button opens the contact form with that package preselected.
 
+## Stripe
+
+Payments made through Stripe Payment Links are recorded automatically in **Admin → Payments** by the
+`stripe-webhook` Edge Function (`supabase/functions/stripe-webhook`). It needs only the webhook signing
+secret; no Stripe API key is stored anywhere.
+
+1. Deploy: `supabase functions deploy stripe-webhook --project-ref bwbmbwwjdcxendypshyb --no-verify-jwt`
+2. Stripe → Developers → Webhooks → **Add endpoint**
+   - URL: `https://bwbmbwwjdcxendypshyb.supabase.co/functions/v1/stripe-webhook`
+   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `charge.refunded`
+3. Copy the signing secret (`whsec_…`) to Supabase → Edge Functions → Secrets as `STRIPE_WEBHOOK_SECRET`.
+4. For each Payment Link set metadata `package` = `licence` | `sprint` | `integration` | `cloud`,
+   and the after-payment redirect to `https://goldenpays.uk/thank-you`.
+
 ## Supabase backend
 
 Migrations live in `supabase/migrations/` (apply in order in the SQL editor, or `supabase db push`).

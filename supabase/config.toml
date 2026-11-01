@@ -1,0 +1,5 @@
+project_id = "bwbmbwwjdcxendypshyb"
+
+# Stripe calls this endpoint without a Supabase JWT; requests are verified by signature instead.
+[functions.stripe-webhook]
+verify_jwt = false
