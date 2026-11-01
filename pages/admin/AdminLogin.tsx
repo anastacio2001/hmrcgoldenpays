@@ -1,105 +1,52 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import Toast from '../../components/Toast';
-
-interface ToastState {
-  show: boolean;
-  message: string;
-  type: 'success' | 'error' | 'info';
-}
+import { Logo } from '../../components/Navbar';
+import { btn, inputClass, labelClass } from './ui';
 
 const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'info' });
-  const { login } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const { login, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAdmin) navigate('/admin/dashboard', { replace: true });
+  }, [isAdmin, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    const success = await login(email, password);
-
-    if (success) {
-      setToast({ show: true, message: 'Login successful! Redirecting...', type: 'success' });
-      setTimeout(() => {
-        navigate('/admin/dashboard');
-      }, 1000);
-    } else {
-      setToast({ show: true, message: 'Invalid credentials. Please try again.', type: 'error' });
-      setLoading(false);
-    }
+    setError(null);
+    const message = await login(email, password);
+    setLoading(false);
+    if (message) setError(message);
+    else navigate('/admin/dashboard');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100">
-      {toast.show && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast({ ...toast, show: false })} 
-        />
-      )}
-
-      <div className="max-w-md w-full px-6">
-        <div className="bg-white shadow-2xl overflow-hidden border border-slate-200">
-          <div className="bg-navy p-8 text-center">
-            <div className="w-16 h-16 bg-gold flex items-center justify-center rounded-sm mx-auto mb-4">
-              <span className="text-white font-bold text-2xl">GP</span>
-            </div>
-            <h2 className="text-white font-serif text-2xl">Admin Portal</h2>
-            <p className="text-slate-400 text-xs mt-2 uppercase tracking-[0.2em]">Secure Management Access</p>
+    <div className="flex min-h-screen items-center justify-center bg-obsidian bg-grid px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 flex justify-center"><Logo /></div>
+        <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-8">
+          <h1 className="text-lg font-semibold text-obsidian">Admin sign in</h1>
+          {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          <div>
+            <label htmlFor="email" className={labelClass}>Email</label>
+            <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputClass} />
           </div>
-          
-          <div className="p-8">
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Email Address</label>
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-navy focus:outline-none text-sm transition-all"
-                  placeholder="admin@goldenpays.uk"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Password</label>
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-navy focus:outline-none text-sm transition-all"
-                  placeholder="••••••••••••"
-                />
-              </div>
-              <button 
-                type="submit"
-                disabled={loading}
-                className="w-full bg-navy text-white py-4 text-xs font-bold tracking-widest hover:bg-slate-800 transition-all disabled:opacity-50"
-              >
-                {loading ? 'AUTHENTICATING...' : 'ACCESS ADMIN PANEL'}
-              </button>
-            </form>
-
-            <div className="mt-8 text-center">
-              <a href="/" className="text-xs text-gold hover:underline">← Back to Public Site</a>
-            </div>
+          <div>
+            <label htmlFor="password" className={labelClass}>Password</label>
+            <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required className={inputClass} />
           </div>
-          
-          <div className="bg-slate-50 p-4 border-t border-slate-100 flex items-center justify-center space-x-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Encrypted Connection Active (AES-256)</span>
-          </div>
-        </div>
-        
-        <p className="mt-8 text-center text-xs text-slate-400">
-          Unauthorized access attempts are logged and monitored.
+          <button type="submit" disabled={loading} className={`${btn} w-full py-3`}>
+            {loading ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+        <p className="mt-6 text-center text-xs text-slate-500">
+          <Link to="/" className="hover:text-white">← Back to goldenpays.uk</Link>
         </p>
       </div>
     </div>

@@ -1,225 +1,121 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useEffect, useState } from 'react';
+import { supabase, Inquiry, InquiryStatus } from '../../lib/supabase';
+import { Badge, Card, Empty, ErrorBox, PageTitle, Spinner, btn, btnDanger, btnGhost, formatDate, inputClass } from './ui';
 
-interface Inquiry {
-  id: string;
-  company: string;
-  name: string;
-  email: string;
-  service: string;
-  message: string;
-  createdAt: string;
-  status: 'new' | 'in-progress' | 'resolved';
-}
+const STATUSES: InquiryStatus[] = ['new', 'in-progress', 'resolved'];
 
 const Inquiries: React.FC = () => {
-  const { token } = useAuth();
-  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const [inquiries, setInquiries] = useState<Inquiry[] | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch inquiries from API
-  useEffect(() => {
-    const fetchInquiries = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/inquiries`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+  const load = async () => {
+    const { data, error } = await supabase!.from('inquiries').select('*').order('created_at', { ascending: false });
+    if (error) setError('Could not load inquiries.');
+    else setInquiries(data as Inquiry[]);
+  };
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch inquiries');
-        }
+  useEffect(() => { load(); }, []);
 
-        const data = await response.json();
-        setInquiries(data.data || []);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load inquiries');
-        console.error('Error fetching inquiries:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const updateStatus = async (id: string, status: InquiryStatus) => {
+    const { error } = await supabase!.from('inquiries').update({ status }).eq('id', id);
+    if (error) setError('Could not update the inquiry.');
+    else setInquiries((list) => list!.map((i) => (i.id === id ? { ...i, status } : i)));
+  };
 
-    if (token) {
-      fetchInquiries();
-      // Refresh every 30 seconds
-      const interval = setInterval(fetchInquiries, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [token]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'new': return 'bg-blue-100 text-blue-800';
-      case 'in-progress': return 'bg-yellow-100 text-yellow-800';
-      case 'resolved': return 'bg-green-100 text-green-800';
-      default: return 'bg-slate-100 text-slate-800';
+  const remove = async (id: string) => {
+    if (!window.confirm('Delete this inquiry permanently?')) return;
+    const { error } = await supabase!.from('inquiries').delete().eq('id', id);
+    if (error) setError('Could not delete the inquiry.');
+    else {
+      setInquiries((list) => list!.filter((i) => i.id !== id));
+      setSelectedId(null);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', { 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit' 
+  const convertToClient = async (inq: Inquiry) => {
+    const { error } = await supabase!.from('clients').insert({
+      name: inq.name,
+      company: inq.company,
+      email: inq.email,
+      status: 'prospect',
+      notes: `From inquiry (${inq.service}): ${inq.message}`,
     });
+    if (error) setError('Could not create the client.');
+    else await updateStatus(inq.id, 'in-progress');
   };
 
-  const filteredInquiries = filterStatus === 'all' 
-    ? inquiries 
-    : inquiries.filter(i => i.status === filterStatus);
+  if (!inquiries) return error ? <ErrorBox message={error} /> : <Spinner />;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-navy mb-4"></div>
-          <p className="text-slate-500">Loading inquiries...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-        <p className="font-bold">Error</p>
-        <p>{error}</p>
-      </div>
-    );
-  }
+  const filtered = filterStatus === 'all' ? inquiries : inquiries.filter((i) => i.status === filterStatus);
+  const selected = inquiries.find((i) => i.id === selectedId) ?? null;
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-serif text-navy mb-2">Inquiries Management</h1>
-          <p className="text-slate-500">Review and manage contact form submissions</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <select 
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 bg-white border border-slate-200 text-sm focus:outline-none focus:border-navy"
-          >
-            <option value="all">All Status</option>
-            <option value="new">New</option>
-            <option value="in-progress">In Progress</option>
-            <option value="resolved">Resolved</option>
+      <PageTitle
+        title="Inquiries"
+        subtitle="Submissions from the website contact form."
+        action={
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`${inputClass} sm:w-44`}>
+            <option value="all">All statuses</option>
+            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
-        </div>
-      </div>
+        }
+      />
+      {error && <ErrorBox message={error} />}
 
-      {filteredInquiries.length === 0 ? (
-        <div className="bg-white rounded-sm border border-slate-200 p-12 text-center">
-          <svg className="w-16 h-16 mx-auto mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-          </svg>
-          <p className="text-slate-500 text-lg mb-2">No inquiries found</p>
-          <p className="text-slate-400 text-sm">
-            {filterStatus !== 'all' 
-              ? `No inquiries with status "${filterStatus}"` 
-              : 'New inquiries will appear here when submitted through the contact form'}
-          </p>
-        </div>
+      {filtered.length === 0 ? (
+        <Empty>No inquiries{filterStatus !== 'all' ? ` with status "${filterStatus}"` : ' yet'}.</Empty>
       ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Inquiries List */}
-        <div className="lg:col-span-1 bg-white rounded-sm border border-slate-200 overflow-hidden max-h-[calc(100vh-16rem)] overflow-y-auto">
-          {filteredInquiries.map((inquiry) => (
-            <div
-              key={inquiry.id}
-              onClick={() => setSelectedInquiry(inquiry)}
-              className={`p-4 border-b border-slate-100 cursor-pointer transition-all hover:bg-slate-50 ${
-                selectedInquiry?.id === inquiry.id ? 'bg-blue-50 border-l-4 border-l-navy' : ''
-              }`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <p className="font-semibold text-sm text-navy">{inquiry.company}</p>
-                  <p className="text-xs text-slate-500">{inquiry.name}</p>
+        <div className="grid gap-6 lg:grid-cols-5">
+          <Card className="max-h-[70vh] overflow-y-auto lg:col-span-2">
+            <ul className="divide-y divide-steel">
+              {filtered.map((inq) => (
+                <li key={inq.id}>
+                  <button
+                    onClick={() => setSelectedId(inq.id)}
+                    className={`w-full px-5 py-4 text-left transition hover:bg-mist ${selectedId === inq.id ? 'bg-mist' : ''}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="truncate text-sm font-medium text-obsidian">{inq.name}</p>
+                      <Badge value={inq.status} />
+                    </div>
+                    <p className="mt-1 truncate text-xs text-slate-500">{inq.service}</p>
+                    <p className="mt-1 text-[11px] text-slate-400">{formatDate(inq.created_at)}</p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          <Card className="lg:col-span-3">
+            {selected ? (
+              <div>
+                <div className="border-b border-steel p-6">
+                  <h2 className="text-lg font-semibold text-obsidian">{selected.name}</h2>
+                  <p className="text-sm text-slate-500">{selected.company ?? 'No company given'}</p>
+                  <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                    <div><dt className="text-xs text-slate-500">Email</dt><dd><a href={`mailto:${selected.email}`} className="text-accent-dark hover:underline">{selected.email}</a></dd></div>
+                    <div><dt className="text-xs text-slate-500">Received</dt><dd>{new Date(selected.created_at).toLocaleString('en-GB')}</dd></div>
+                    <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Service</dt><dd>{selected.service}</dd></div>
+                  </dl>
                 </div>
-                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${getStatusColor(inquiry.status)}`}>
-                  {inquiry.status}
-                </span>
+                <p className="whitespace-pre-wrap border-b border-steel p-6 text-sm leading-relaxed text-slate-700">{selected.message}</p>
+                <div className="flex flex-wrap items-center gap-3 p-6">
+                  <select value={selected.status} onChange={(e) => updateStatus(selected.id, e.target.value as InquiryStatus)} className={`${inputClass} w-40`}>
+                    {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <a href={`mailto:${selected.email}?subject=${encodeURIComponent(`Re: ${selected.service}`)}`} className={btn}>Reply by email</a>
+                  <button onClick={() => convertToClient(selected)} className={btnGhost}>Convert to client</button>
+                  <button onClick={() => remove(selected.id)} className={btnDanger}>Delete</button>
+                </div>
               </div>
-              <p className="text-xs text-slate-600 mb-1">{inquiry.service}</p>
-              <p className="text-[10px] text-slate-400">{formatDate(inquiry.createdAt)}</p>
-            </div>
-          ))}
+            ) : (
+              <p className="p-12 text-center text-sm text-slate-500">Select an inquiry to view details.</p>
+            )}
+          </Card>
         </div>
-
-        {/* Inquiry Detail */}
-        <div className="lg:col-span-2 bg-white rounded-sm border border-slate-200">
-          {selectedInquiry ? (
-            <div>
-              <div className="p-6 border-b border-slate-200">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h2 className="text-2xl font-serif text-navy mb-1">{selectedInquiry.company}</h2>
-                    <p className="text-slate-500">{selectedInquiry.name}</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded text-xs font-bold uppercase ${getStatusColor(selectedInquiry.status)}`}>
-                    {selectedInquiry.status}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase mb-1">Email</p>
-                    <p className="text-navy">{selectedInquiry.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase mb-1">Date</p>
-                    <p className="text-navy">{formatDate(selectedInquiry.createdAt)}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-xs font-bold text-slate-500 uppercase mb-1">Service Requested</p>
-                    <p className="text-navy">{selectedInquiry.service}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 border-b border-slate-200">
-                <p className="text-xs font-bold text-slate-500 uppercase mb-3">Message</p>
-                <p className="text-slate-700 leading-relaxed">{selectedInquiry.message}</p>
-              </div>
-
-              <div className="p-6 bg-slate-50">
-                <p className="text-xs font-bold text-slate-500 uppercase mb-4">Actions</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <button className="bg-navy text-white px-4 py-3 text-xs font-bold tracking-wider hover:bg-slate-800 transition-all">
-                    SEND EMAIL
-                  </button>
-                  <button className="bg-green-600 text-white px-4 py-3 text-xs font-bold tracking-wider hover:bg-green-700 transition-all">
-                    CONVERT TO CLIENT
-                  </button>
-                  <button className="border border-slate-300 text-slate-600 px-4 py-3 text-xs font-bold tracking-wider hover:bg-slate-100 transition-all">
-                    MARK AS PENDING
-                  </button>
-                  <button className="border border-red-300 text-red-600 px-4 py-3 text-xs font-bold tracking-wider hover:bg-red-50 transition-all">
-                    REJECT INQUIRY
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="p-12 text-center text-slate-400">
-              <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <p className="text-sm">Select an inquiry to view details</p>
-            </div>
-          )}
-        </div>
-      </div>
       )}
     </div>
   );

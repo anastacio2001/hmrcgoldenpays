@@ -3,8 +3,8 @@
 Software Engineering & Cloud Automation Studio · Company No. 16227513 · Manchester, UK
 
 - **Frontend:** Vite + React 19 + Tailwind CSS 4, deployed on Vercel
-- **Backend:** Express API in `server/` (contact form + admin), deployed on Render
-- **Verification Portal:** Supabase (Postgres)
+- **Backend:** Supabase (Postgres + Auth): contact form, admin panel, Verification Portal.
+  The legacy Express API in `server/` is no longer used by the site.
 
 ## Run locally
 
@@ -14,7 +14,6 @@ cp .env.example .env.local   # fill in values
 npm run dev                  # http://localhost:3000
 ```
 
-Backend: `cd server && npm install && npm run dev`.
 
 ## Site structure
 
@@ -28,6 +27,7 @@ Backend: `cd server && npm install && npm run dev`.
 | `/company` | Director profile and corporate information |
 | `/contact` | Enquiry form (`?package=sprint` preselects a service) |
 | `/legal/terms`, `/legal/privacy`, `/legal/refunds` | Legal pages |
+| `/admin` | Admin panel: inquiries, clients, projects, deliverables (Supabase Auth) |
 
 Company facts, SIC codes and package prices live in `data/site.ts`.
 
@@ -42,17 +42,32 @@ VITE_STRIPE_LINK_INTEGRATION  VITE_STRIPE_LINK_CLOUD
 
 When a link is not set, its button opens the contact form with that package preselected.
 
-## Verification Portal (Supabase)
+## Supabase backend
 
-1. Run `supabase/migrations/20261101000000_deliverables.sql` in the Supabase SQL editor (or `supabase db push`).
-2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Vercel.
-3. Add a delivery once the client has accepted it **and consented to publication**:
+Migrations live in `supabase/migrations/` (apply in order in the SQL editor, or `supabase db push`).
+
+| Table | Access |
+|---|---|
+| `inquiries` | Visitors can insert only (rate-limited: 3/hour per email, 30/10 min overall). Admins read/update/delete. |
+| `clients`, `projects` | Admins only |
+| `deliverables` | Admins only; the public reads one published record at a time via `verify_deliverable()` |
+
+Enquiry emails are sent by a database trigger through Resend (`pg_net`). Vault secrets: `resend_api_key`, `resend_from_email`, `admin_email`.
+Until the `goldenpays.uk` domain is verified in Resend, Resend only delivers to the account owner's address.
+
+### Creating an admin
+
+1. Supabase → Authentication → Users → **Add user** (email + strong password, auto-confirm).
+2. Grant the admin role in the SQL editor:
 
 ```sql
-insert into private.deliverables
-  (reference, client_classification, sic_code, deliverable_summary, accepted_on, is_public)
-values
-  ('GPY-2026-7KQ4M2', 'UK SME · E-commerce', '62012', 'REST API Gateway Deployed', '2026-10-28', true);
+update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}' where email = 'you@example.com';
 ```
 
-Records live in the non-exposed `private` schema. The site can only look up one reference at a time through `public.verify_deliverable()`, so the list cannot be enumerated. The SHA-256 fingerprint is computed automatically. Use a random suffix in references so they cannot be guessed.
+3. Sign in at `/admin/login`. Disable public sign-ups under Authentication → Providers → Email.
+
+### Verification records
+
+Record deliveries in **Admin → Deliverables** (references are generated with a random suffix).
+Only tick *Publish* once the client has accepted the delivery and agreed to publication.
+The SHA-256 fingerprint is computed by the database and cannot be edited.

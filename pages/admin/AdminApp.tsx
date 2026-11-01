@@ -1,0 +1,40 @@
+import React, { lazy } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from '../../contexts/AuthContext';
+import ProtectedRoute from '../../components/ProtectedRoute';
+import AdminLayout from '../../components/AdminLayout';
+import AdminLogin from './AdminLogin';
+
+const Dashboard = lazy(() => import('./Dashboard'));
+const Inquiries = lazy(() => import('./Inquiries'));
+const Clients = lazy(() => import('./Clients'));
+const Projects = lazy(() => import('./Projects'));
+const Deliverables = lazy(() => import('./Deliverables'));
+const Settings = lazy(() => import('./Settings'));
+
+// Admin area: mounted under /admin/* and loaded only when visited.
+const AdminApp: React.FC = () => (
+  <AuthProvider>
+    <Routes>
+      <Route path="login" element={<AdminLogin />} />
+      <Route path="*" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <Routes>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="inquiries" element={<Inquiries />} />
+              <Route path="clients" element={<Clients />} />
+              <Route path="projects" element={<Projects />} />
+              <Route path="deliverables" element={<Deliverables />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="*" element={<Navigate to="dashboard" replace />} />
+            </Routes>
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+    </Routes>
+  </AuthProvider>
+);
+
+export default AdminApp;

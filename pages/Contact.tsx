@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import Toast from '../components/Toast';
 import { COMPANY, OFFERINGS } from '../data/site';
 import { PageHeader, btnPrimary } from '../components/ui';
+import { supabase } from '../lib/supabase';
 
 interface ToastState {
   show: boolean;
@@ -10,7 +11,7 @@ interface ToastState {
   type: 'success' | 'error' | 'info';
 }
 
-// Must match the `service` values accepted by server/src/routes/contact.js
+// Must match the inquiries_service_check constraint in supabase/migrations
 const SERVICE_OPTIONS = [...OFFERINGS.map((o) => o.title), 'Custom Project', 'Other'];
 
 const inputClass = 'w-full rounded-md border border-steel bg-white px-4 py-3 text-sm transition focus:border-accent focus:outline-none';
@@ -42,29 +43,32 @@ const Contact: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/contact/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.fullName,
-          company: formData.company,
-          email: formData.email,
-          service: formData.inquiry,
-          message: formData.message,
-        }),
+      if (!supabase) throw new Error('Enquiry service is not configured');
+      const { error } = await supabase.from('inquiries').insert({
+        name: formData.fullName,
+        company: formData.company || null,
+        email: formData.email,
+        service: formData.inquiry,
+        message: formData.message,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to submit inquiry');
+      if (error) {
+        // Rate-limit errors carry a user-facing hint from the database trigger.
+        throw new Error(error.message === 'rate_limited' && error.hint ? error.hint : error.message);
       }
 
       setToast({ show: true, message: 'Thank you. We will reply within 2 business days.', type: 'success' });
       setFormData({ fullName: '', company: '', email: '', inquiry: '', message: '', consent: false });
     } catch (error) {
       console.error('Contact form error:', error);
-      setToast({ show: true, message: `Submission failed. Please try again or email ${COMPANY.email}.`, type: 'error' });
+      const rateLimited = error instanceof Error && /^(Too many|The enquiry service is busy)/.test(error.message);
+      setToast({
+        show: true,
+        message: rateLimited
+          ? `${(error as Error).message} You can also email ${COMPANY.email}.`
+          : `Submission failed. Please try again or email ${COMPANY.email}.`,
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }

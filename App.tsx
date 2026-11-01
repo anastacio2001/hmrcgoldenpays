@@ -4,8 +4,6 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
-import ProtectedRoute from './components/ProtectedRoute';
-import AdminLayout from './components/AdminLayout';
 import CookieConsent from './components/CookieConsent';
 import ErrorBoundary from './components/ErrorBoundary';
 import { initGA, trackPageView } from './utils/analytics';
@@ -24,13 +22,8 @@ const TermsAndConditions = lazy(() => import('./pages/legal/TermsAndConditions')
 const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'));
 const RefundPolicy = lazy(() => import('./pages/legal/RefundPolicy'));
 
-// Lazy load admin pages
-const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
-const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
-const Inquiries = lazy(() => import('./pages/admin/Inquiries'));
-const Clients = lazy(() => import('./pages/admin/Clients'));
-const Projects = lazy(() => import('./pages/admin/Projects'));
-const Settings = lazy(() => import('./pages/admin/Settings'));
+// Admin area (own bundle, includes auth)
+const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
 
 // Loading component
 const PageLoader = () => (
@@ -41,7 +34,6 @@ const PageLoader = () => (
 
 const App: React.FC = () => {
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
 
   // Initialize Google Analytics
   React.useEffect(() => {
@@ -69,20 +61,7 @@ const App: React.FC = () => {
         <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Admin Routes */}
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/*" element={
-            <ProtectedRoute requireAdmin>
-              <AdminLayout>
-                <Routes>
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="inquiries" element={<Inquiries />} />
-                  <Route path="clients" element={<Clients />} />
-                  <Route path="projects" element={<Projects />} />
-                  <Route path="settings" element={<Settings />} />
-                </Routes>
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
+          <Route path="/admin/*" element={<AdminApp />} />
 
           {/* Public Routes */}
           <Route path="/*" element={
