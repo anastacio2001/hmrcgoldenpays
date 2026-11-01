@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const CookieConsent: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -35,27 +36,18 @@ const CookieConsent: React.FC = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-navy text-white p-6 shadow-2xl z-50 border-t-4 border-gold">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex-1">
-          <p className="text-sm leading-relaxed">
-            We use essential cookies to ensure proper website functionality and optional analytics cookies to improve our services. 
-            By clicking "Accept", you consent to our use of cookies in accordance with our{' '}
-            <a href="/#/legal/privacy" className="text-gold underline hover:text-white">Privacy Policy</a>.
-          </p>
-        </div>
-        <div className="flex gap-3 flex-shrink-0">
-          <button
-            onClick={handleDecline}
-            className="px-6 py-2 border border-white text-white text-sm font-bold hover:bg-white hover:text-navy transition-all"
-          >
-            DECLINE
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-obsidian/95 p-5 text-slate-300 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <p className="text-sm leading-relaxed">
+          We use essential storage to run this site and, with your permission, analytics cookies to improve it. See our{' '}
+          <Link to="/legal/privacy" className="text-accent underline hover:text-white">Privacy Policy</Link>.
+        </p>
+        <div className="flex shrink-0 gap-3">
+          <button onClick={handleDecline} className="rounded-md border border-white/20 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
+            Decline
           </button>
-          <button
-            onClick={handleAccept}
-            className="px-6 py-2 bg-gold text-navy text-sm font-bold hover:bg-white transition-all"
-          >
-            ACCEPT
+          <button onClick={handleAccept} className="rounded-md bg-accent px-5 py-2 text-sm font-semibold text-white transition hover:bg-accent-dark">
+            Accept
           </button>
         </div>
       </div>

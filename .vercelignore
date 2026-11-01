@@ -1,0 +1,9 @@
+DADOS.MD
+.env
+.env.*
+!.env.example
+server
+supabase
+node_modules
+dist
+*.md

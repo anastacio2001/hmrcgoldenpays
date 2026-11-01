@@ -35,3 +35,8 @@ coverage
 # Production
 .vercel
 .netlify
+
+# Local credentials notes
+DADOS.MD
+.env*.local
+supabase/.temp

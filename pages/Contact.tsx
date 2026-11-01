@@ -1,6 +1,8 @@
-
 import React, { useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import Toast from '../components/Toast';
+import { COMPANY, OFFERINGS } from '../data/site';
+import { PageHeader, btnPrimary } from '../components/ui';
 
 interface ToastState {
   show: boolean;
@@ -8,12 +10,21 @@ interface ToastState {
   type: 'success' | 'error' | 'info';
 }
 
+// Must match the `service` values accepted by server/src/routes/contact.js
+const SERVICE_OPTIONS = [...OFFERINGS.map((o) => o.title), 'Custom Project', 'Other'];
+
+const inputClass = 'w-full rounded-md border border-steel bg-white px-4 py-3 text-sm transition focus:border-accent focus:outline-none';
+const labelClass = 'mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500';
+
 const Contact: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const preselected = OFFERINGS.find((o) => o.id === searchParams.get('package'))?.title ?? '';
+
   const [formData, setFormData] = useState({
     fullName: '',
     company: '',
     email: '',
-    inquiry: '',
+    inquiry: preselected,
     message: '',
     consent: false,
   });
@@ -22,30 +33,25 @@ const Contact: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.consent) {
-      setToast({ show: true, message: 'Please acknowledge the terms before submitting.', type: 'error' });
+      setToast({ show: true, message: 'Please confirm you have read the Privacy Policy.', type: 'error' });
       return;
     }
 
     setLoading(true);
 
     try {
-      // Map form data to API format
-      const apiData = {
-        name: formData.fullName,
-        company: formData.company,
-        email: formData.email,
-        service: formData.inquiry || 'General Inquiry',
-        message: formData.message
-      };
-
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/contact/submit`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(apiData),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.fullName,
+          company: formData.company,
+          email: formData.email,
+          service: formData.inquiry,
+          message: formData.message,
+        }),
       });
 
       const data = await response.json();
@@ -54,28 +60,11 @@ const Contact: React.FC = () => {
         throw new Error(data.message || 'Failed to submit inquiry');
       }
 
-      setToast({ 
-        show: true, 
-        message: 'Your formal inquiry has been received. Our team will review and respond within 2 business days.', 
-        type: 'success' 
-      });
-      
-      // Reset form
-      setFormData({
-        fullName: '',
-        company: '',
-        email: '',
-        inquiry: '',
-        message: '',
-        consent: false,
-      });
+      setToast({ show: true, message: 'Thank you. We will reply within 2 business days.', type: 'success' });
+      setFormData({ fullName: '', company: '', email: '', inquiry: '', message: '', consent: false });
     } catch (error) {
       console.error('Contact form error:', error);
-      setToast({ 
-        show: true, 
-        message: 'Failed to submit inquiry. Please try again or contact us directly at enquiries@goldenpays.uk', 
-        type: 'error' 
-      });
+      setToast({ show: true, message: `Submission failed. Please try again or email ${COMPANY.email}.`, type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -90,158 +79,92 @@ const Contact: React.FC = () => {
   };
 
   return (
-    <div className="pt-32 pb-24 bg-white">
+    <div>
       {toast.show && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast({ ...toast, show: false })} 
-        />
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />
       )}
 
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
-          
-          {/* Left Side: Info */}
-          <div className="space-y-12">
+      <PageHeader
+        eyebrow="Contact"
+        title="Start a project or ask a question."
+        intro="Tell us what you need built, integrated or hosted. For fixed-price packages you can also purchase directly from the services page."
+      />
+
+      <div className="mx-auto grid max-w-6xl gap-16 px-6 py-20 lg:grid-cols-5">
+        <aside className="space-y-8 text-sm lg:col-span-2">
+          <div>
+            <h2 className="font-mono text-[11px] uppercase tracking-wider text-slate-500">Email</h2>
+            <a href={`mailto:${COMPANY.email}`} className="mt-1 block text-obsidian hover:text-accent-dark">{COMPANY.email}</a>
+          </div>
+          <div>
+            <h2 className="font-mono text-[11px] uppercase tracking-wider text-slate-500">Registered office</h2>
+            <address className="mt-1 not-italic leading-relaxed text-obsidian">
+              {COMPANY.officeLines.map((line) => <span key={line} className="block">{line}</span>)}
+            </address>
+          </div>
+          <div>
+            <h2 className="font-mono text-[11px] uppercase tracking-wider text-slate-500">Company</h2>
+            <p className="mt-1 text-obsidian">{COMPANY.name} · No. <span className="font-mono">{COMPANY.number}</span></p>
+          </div>
+          <div className="rounded-xl bg-mist p-6">
+            <p className="font-semibold text-obsidian">Ready to buy?</p>
+            <p className="mt-1 text-slate-600">Packages with published prices can be purchased online.</p>
+            <Link to="/services" className="mt-3 inline-block font-semibold text-accent-dark hover:underline">View productized services →</Link>
+          </div>
+        </aside>
+
+        <form className="space-y-6 rounded-xl border border-steel bg-mist p-8 lg:col-span-3" onSubmit={handleSubmit}>
+          <div className="grid gap-6 md:grid-cols-2">
             <div>
-              <span className="text-gold text-xs font-bold tracking-[0.3em] uppercase block mb-4">Get in Touch</span>
-              <h1 className="font-serif text-5xl text-navy mb-8">Consultation Request</h1>
-              <p className="text-slate-500 text-lg leading-relaxed">
-                GOLDENPAYS LTD operates exclusively through private referral and selected B2B outreach. If you are interested in our advisory services, please submit a formal inquiry.
-              </p>
+              <label htmlFor="fullName" className={labelClass}>Full name</label>
+              <input id="fullName" type="text" name="fullName" value={formData.fullName} onChange={handleChange} required className={inputClass} />
             </div>
-
-            <div className="space-y-6">
-              <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 bg-slate-100 flex items-center justify-center text-navy shrink-0">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                </div>
-                <div>
-                  <h4 className="font-bold text-navy text-sm uppercase tracking-wider">Registered HQ</h4>
-                  <p className="text-slate-500 text-sm leading-relaxed">
-                    Office 12 Initial Business Centre,<br />
-                    Wilson Business Park, Manchester,<br />
-                    UK, M40 8WN
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 bg-slate-100 flex items-center justify-center text-navy shrink-0">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                </div>
-                <div>
-                  <h4 className="font-bold text-navy text-sm uppercase tracking-wider">Electronic Inquiries</h4>
-                  <p className="text-slate-500 text-sm">enquiries@goldenpays.uk</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-8 bg-navy text-white">
-              <h3 className="text-gold font-bold text-xs uppercase tracking-widest mb-3">Privacy & Compliance</h3>
-              <p className="text-xs text-slate-400 italic leading-relaxed">
-                Strictly B2B & Private Referral. We operate under a high-confidentiality framework for all consultancy engagements. In compliance with HMRC and AML regulations, all new clients undergo a mandatory KYC (Know Your Customer) assessment before project commencement.
-              </p>
+            <div>
+              <label htmlFor="company" className={labelClass}>Company <span className="normal-case tracking-normal text-slate-400">(optional)</span></label>
+              <input id="company" type="text" name="company" value={formData.company} onChange={handleChange} className={inputClass} />
             </div>
           </div>
 
-          {/* Right Side: Form */}
-          <div className="bg-slate-50 p-10 border border-slate-200 shadow-lg">
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Full Name</label>
-                  <input 
-                    type="text" 
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-navy focus:outline-none text-sm transition-all" 
-                    placeholder="John Doe" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Company Name</label>
-                  <input 
-                    type="text" 
-                    name="company"
-                    value={formData.company}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-navy focus:outline-none text-sm transition-all" 
-                    placeholder="Enterprise Ltd" 
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Professional Email</label>
-                <input 
-                  type="email" 
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-navy focus:outline-none text-sm transition-all" 
-                  placeholder="j.doe@enterprise.com" 
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Nature of Inquiry</label>
-                <select 
-                  name="inquiry"
-                  value={formData.inquiry}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-navy focus:outline-none text-sm transition-all"
-                >
-                  <option value="">Select Service Area</option>
-                  <option value="Infrastructure Audit">Infrastructure Audit</option>
-                  <option value="Strategic Advisory">Strategic Advisory</option>
-                  <option value="Cloud Migration">Cloud Migration</option>
-                  <option value="Compliance Review">Compliance Review</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Brief Overview</label>
-                <textarea 
-                  rows={4} 
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-navy focus:outline-none text-sm transition-all" 
-                  placeholder="Describe the scale and scope of the required advisory..."
-                />
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <input 
-                  type="checkbox" 
-                  name="consent"
-                  checked={formData.consent}
-                  onChange={handleChange}
-                  className="mt-1 cursor-pointer" 
-                />
-                <p className="text-[10px] text-slate-500 italic">I acknowledge that GOLDENPAYS LTD reserves the right to decline any engagement and that this inquiry does not constitute a contract for services.</p>
-              </div>
-
-              <button 
-                type="submit"
-                disabled={loading}
-                className="w-full bg-navy text-white py-5 text-xs font-bold tracking-widest hover:bg-slate-800 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'PROCESSING...' : 'SUBMIT FORMAL INQUIRY'}
-              </button>
-            </form>
+          <div>
+            <label htmlFor="email" className={labelClass}>Email</label>
+            <input id="email" type="email" name="email" value={formData.email} onChange={handleChange} required className={inputClass} />
           </div>
 
-        </div>
+          <div>
+            <label htmlFor="inquiry" className={labelClass}>Service</label>
+            <select id="inquiry" name="inquiry" value={formData.inquiry} onChange={handleChange} required className={inputClass}>
+              <option value="">Select a service</option>
+              {SERVICE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="message" className={labelClass}>Project details</label>
+            <textarea
+              id="message"
+              rows={5}
+              name="message"
+              value={formData.message}
+              onChange={handleChange}
+              required
+              minLength={10}
+              className={inputClass}
+              placeholder="What do you need built, integrated or hosted? Include any deadlines."
+            />
+          </div>
+
+          <label className="flex items-start gap-3 text-xs text-slate-600">
+            <input type="checkbox" name="consent" checked={formData.consent} onChange={handleChange} className="mt-0.5 accent-accent" />
+            <span>
+              I agree that GOLDENPAYS LTD may use these details to respond to my enquiry, as described in the{' '}
+              <Link to="/legal/privacy" className="underline">Privacy Policy</Link>.
+            </span>
+          </label>
+
+          <button type="submit" disabled={loading} className={`${btnPrimary} w-full py-4 disabled:cursor-not-allowed disabled:opacity-50`}>
+            {loading ? 'Sending…' : 'Send enquiry'}
+          </button>
+        </form>
       </div>
     </div>
   );

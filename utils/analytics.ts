@@ -17,16 +17,16 @@ export const initGA = (measurementId: string) => {
     window.dataLayer?.push(arguments);
   };
   
-  window.gtag('js', new Date());
-  window.gtag('config', measurementId, {
-    page_path: window.location.pathname + window.location.hash,
-    send_page_view: false, // We'll track manually
+  // Consent defaults must be set before config (GDPR compliant)
+  window.gtag('consent', 'default', {
+    analytics_storage: localStorage.getItem('cookieConsent') === 'accepted' ? 'granted' : 'denied',
+    ad_storage: 'denied',
   });
 
-  // Set default consent mode (GDPR compliant)
-  window.gtag('consent', 'default', {
-    analytics_storage: 'denied',
-    ad_storage: 'denied',
+  window.gtag('js', new Date());
+  window.gtag('config', measurementId, {
+    page_path: window.location.pathname,
+    send_page_view: false, // We'll track manually
   });
 };
 

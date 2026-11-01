@@ -14,6 +14,12 @@ interface ImportMetaEnv {
   readonly VITE_MAINTENANCE_MODE: string
   readonly VITE_SESSION_TIMEOUT: string
   readonly VITE_MAX_LOGIN_ATTEMPTS: string
+  readonly VITE_SUPABASE_URL?: string
+  readonly VITE_SUPABASE_ANON_KEY?: string
+  readonly VITE_STRIPE_LINK_LICENCE?: string
+  readonly VITE_STRIPE_LINK_SPRINT?: string
+  readonly VITE_STRIPE_LINK_INTEGRATION?: string
+  readonly VITE_STRIPE_LINK_CLOUD?: string
 }
 
 interface ImportMeta {

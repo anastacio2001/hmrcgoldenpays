@@ -1,6 +1,6 @@
 
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -11,16 +11,18 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { initGA, trackPageView } from './utils/analytics';
 
 // Lazy load public pages
-const About = lazy(() => import('./pages/About'));
+const Solutions = lazy(() => import('./pages/Solutions'));
 const Services = lazy(() => import('./pages/Services'));
-const Methodology = lazy(() => import('./pages/Methodology'));
-const ClientPortal = lazy(() => import('./pages/ClientPortal'));
+const SaasCatalog = lazy(() => import('./pages/SaasCatalog'));
+const Verify = lazy(() => import('./pages/Verify'));
+const Company = lazy(() => import('./pages/Company'));
 const Contact = lazy(() => import('./pages/Contact'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Lazy load legal pages
 const TermsAndConditions = lazy(() => import('./pages/legal/TermsAndConditions'));
 const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'));
-const ProfessionalDisclaimer = lazy(() => import('./pages/legal/ProfessionalDisclaimer'));
+const RefundPolicy = lazy(() => import('./pages/legal/RefundPolicy'));
 
 // Lazy load admin pages
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
@@ -32,11 +34,8 @@ const Settings = lazy(() => import('./pages/admin/Settings'));
 
 // Loading component
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-white">
-    <div className="text-center">
-      <div className="w-16 h-16 border-4 border-navy border-t-gold rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-slate-500 text-sm uppercase tracking-widest">Loading...</p>
-    </div>
+  <div className="min-h-screen flex items-center justify-center bg-obsidian">
+    <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-accent" aria-label="Loading" />
   </div>
 );
 
@@ -56,17 +55,17 @@ const App: React.FC = () => {
 
   // Track page views and scroll to top on route change
   React.useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!location.hash) window.scrollTo({ top: 0 });
     
     const analyticsEnabled = import.meta.env.VITE_ENABLE_ANALYTICS === 'true';
     if (analyticsEnabled && window.gtag) {
-      trackPageView(location.pathname + location.hash);
+      trackPageView(location.pathname);
     }
   }, [location]);
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen flex flex-col selection:bg-navy selection:text-white">
+      <div className="min-h-screen flex flex-col">
         <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Admin Routes */}
@@ -92,14 +91,22 @@ const App: React.FC = () => {
               <main className="flex-grow">
                 <Routes>
                   <Route path="/" element={<Home />} />
-                  <Route path="/about" element={<About />} />
+                  <Route path="/solutions" element={<Solutions />} />
                   <Route path="/services" element={<Services />} />
-                  <Route path="/methodology" element={<Methodology />} />
-                  <Route path="/client-portal" element={<ClientPortal />} />
+                  <Route path="/saas" element={<SaasCatalog />} />
+                  <Route path="/verify" element={<Verify />} />
+                  <Route path="/company" element={<Company />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/legal/terms" element={<TermsAndConditions />} />
                   <Route path="/legal/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/legal/disclaimer" element={<ProfessionalDisclaimer />} />
+                  <Route path="/legal/refunds" element={<RefundPolicy />} />
+
+                  {/* Redirects from the previous site structure */}
+                  <Route path="/about" element={<Navigate to="/company" replace />} />
+                  <Route path="/methodology" element={<Navigate to="/solutions" replace />} />
+                  <Route path="/client-portal" element={<Navigate to="/services" replace />} />
+                  <Route path="/legal/disclaimer" element={<Navigate to="/legal/terms" replace />} />
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
               <Footer />

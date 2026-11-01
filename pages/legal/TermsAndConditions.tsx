@@ -1,182 +1,103 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import LegalLayout, { LegalSection } from './LegalLayout';
 
-const TermsAndConditions: React.FC = () => {
-  return (
-    <div className="pt-32 pb-24 bg-white">
-      <div className="max-w-4xl mx-auto px-6">
-        <div className="mb-12">
-          <h1 className="font-serif text-4xl text-navy mb-4">Terms and Conditions</h1>
-          <p className="text-sm text-slate-500">Last Updated: 4th February 2026</p>
-          <p className="text-sm text-slate-600 mt-2">
-            GOLDENPAYS LTD | Company Number: 16227513 | Registered in England and Wales
-          </p>
-        </div>
+const sections: LegalSection[] = [
+  {
+    title: 'About these terms',
+    body: (
+      <>
+        <p>These Terms of Service govern the purchase and use of software, digital products and technical services supplied by GOLDENPAYS LTD ("we", "us"), a company registered in England & Wales (No. 16227513).</p>
+        <p>By purchasing a product, booking a service or using our software you agree to these terms. If you are buying on behalf of a business, you confirm you are authorised to bind that business.</p>
+      </>
+    ),
+  },
+  {
+    title: 'What we supply',
+    body: (
+      <ul>
+        <li><strong>Software licences and digital tooling</strong>: subscriptions and perpetual licences for software we publish.</li>
+        <li><strong>Development sprints</strong>: time-boxed development of software to an agreed scope.</li>
+        <li><strong>Systems and API integration</strong>: fixed-scope integration work.</li>
+        <li><strong>Cloud infrastructure and data hosting</strong>: provisioning and ongoing management under a monthly retainer.</li>
+      </ul>
+    ),
+  },
+  {
+    title: 'Orders, scope and acceptance',
+    body: (
+      <>
+        <p>A contract is formed when we confirm your order or booking in writing (including by email). For sprints and integrations, the agreed scope is the written scope we confirm before work starts; changes to scope may change the price or timeline and require your agreement.</p>
+        <p>On completion we will ask you to review the deliverable. Acceptance occurs when you confirm in writing, or 10 business days after delivery if you have not reported a material defect. Accepted deliveries receive a reference (GPY-YYYY-XXXX) and, only with your consent, may be published in sanitized form on our <Link to="/verify" className="text-accent-dark underline">Verification Portal</Link>.</p>
+      </>
+    ),
+  },
+  {
+    title: 'Prices and payment',
+    body: (
+      <>
+        <p>Prices are shown in pounds sterling and exclude VAT where applicable. Online payments are processed by Stripe; we do not store your card details.</p>
+        <p>Subscriptions and retainers are billed in advance each month until cancelled. Sprints may require a deposit to reserve the start date, with the balance due on delivery. Invoices are payable within 14 days unless otherwise agreed.</p>
+      </>
+    ),
+  },
+  {
+    title: 'Cancellations and refunds',
+    body: <p>Your cancellation and refund rights are set out in our <Link to="/legal/refunds" className="text-accent-dark underline">Refund & Cancellation Policy</Link>, which forms part of these terms.</p>,
+  },
+  {
+    title: 'Licences and intellectual property',
+    body: (
+      <>
+        <p><strong>Published software:</strong> we grant you a non-exclusive, non-transferable licence to use the software for your internal business purposes, for the term of your subscription or, for perpetual licences, indefinitely. You may not resell, sublicense or redistribute it.</p>
+        <p><strong>Bespoke work:</strong> on full payment, ownership of code written specifically for you transfers to you. We retain ownership of our pre-existing tools, libraries and know-how, and grant you a perpetual licence to use any of them included in your deliverable.</p>
+      </>
+    ),
+  },
+  {
+    title: 'Your responsibilities',
+    body: (
+      <ul>
+        <li>Provide timely access to the systems, accounts and information we need.</li>
+        <li>Ensure you have the right to share any data or third-party credentials with us.</li>
+        <li>Keep your licence keys and account credentials secure.</li>
+      </ul>
+    ),
+  },
+  {
+    title: 'Hosting and availability',
+    body: <p>For hosting retainers we use reasonable care and skill to keep services available and backed up in line with the agreed backup policy. Services rely on third-party cloud providers, and we are not responsible for outages caused by those providers or events outside our reasonable control.</p>,
+  },
+  {
+    title: 'Confidentiality and data protection',
+    body: <p>Each party will keep the other's confidential information confidential. Where we process personal data on your behalf, we do so as a processor under your instructions and in accordance with UK GDPR. See our <Link to="/legal/privacy" className="text-accent-dark underline">Privacy Policy</Link>.</p>,
+  },
+  {
+    title: 'Liability',
+    body: (
+      <>
+        <p>Nothing in these terms limits liability for death or personal injury caused by negligence, fraud, or any liability that cannot be limited by law. If you are a consumer, nothing in these terms affects your statutory rights.</p>
+        <p>For business customers, our total liability under any contract is limited to the amount you paid us under that contract in the 12 months before the claim, and we are not liable for indirect or consequential loss, or loss of profit, revenue or data.</p>
+      </>
+    ),
+  },
+  {
+    title: 'Termination',
+    body: <p>Either party may terminate a contract if the other materially breaches it and does not remedy the breach within 14 days of written notice. On termination you pay for work performed up to the termination date.</p>,
+  },
+  {
+    title: 'Governing law',
+    body: <p>These terms are governed by the law of England and Wales, and the courts of England and Wales have jurisdiction. Consumers resident elsewhere in the UK may also bring proceedings in their local courts.</p>,
+  },
+];
 
-        <div className="prose prose-slate max-w-none space-y-8">
-          {/* Section 1 */}
-          <section>
-            <h2 className="text-2xl font-serif text-navy mb-4">1. Introduction and Acceptance</h2>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              These Terms and Conditions ("Terms") constitute a legally binding agreement between GOLDENPAYS LTD ("Company", "we", "us", or "our"), a private limited company incorporated in England and Wales under company number 16227513, and the Client ("you" or "Client") for the provision of management consultancy and information technology advisory services.
-            </p>
-            <p className="text-slate-700 leading-relaxed">
-              By engaging our services, submitting a formal inquiry, or executing a Statement of Work (SOW), you acknowledge that you have read, understood, and agree to be bound by these Terms in their entirety.
-            </p>
-          </section>
-
-          {/* Section 2 */}
-          <section>
-            <h2 className="text-2xl font-serif text-navy mb-4">2. Scope of Services</h2>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              GOLDENPAYS LTD provides the following non-regulated professional services:
-            </p>
-            <ul className="list-disc pl-6 space-y-2 text-slate-700">
-              <li><strong>Enterprise IT Advisory (B2B):</strong> Strategic consultancy for cloud architecture, infrastructure modernisation, security auditing, and disaster recovery planning.</li>
-              <li><strong>Professional Services (B2C/Sole Traders):</strong> Bespoke technical support, management mentorship, operational efficiency guidance, and fiscal compliance readiness (non-regulated).</li>
-              <li><strong>Operational Excellence:</strong> Resource allocation audits, workflow automation, and cost-benefit analysis for research and development initiatives.</li>
-            </ul>
-            <p className="text-slate-700 leading-relaxed mt-4">
-              All services are delivered pursuant to a mutually executed Statement of Work (SOW) which shall form an integral part of these Terms.
-            </p>
-          </section>
-
-          {/* Section 3 */}
-          <section>
-            <h2 className="text-2xl font-serif text-navy mb-4">3. Client Engagement and Onboarding</h2>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              3.1. All new clients are subject to a mandatory Know Your Customer (KYC) assessment and due diligence process in compliance with UK Anti-Money Laundering (AML) regulations.
-            </p>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              3.2. The Company reserves the absolute right to decline any engagement without providing justification.
-            </p>
-            <p className="text-slate-700 leading-relaxed">
-              3.3. Services operate exclusively on a private referral and selective B2B outreach basis. Submission of an inquiry does not constitute a binding contract for services.
-            </p>
-          </section>
-
-          {/* Section 4 */}
-          <section>
-            <h2 className="text-2xl font-serif text-navy mb-4">4. Payment Terms and Conditions</h2>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              4.1. <strong>Private Clients and Sole Traders:</strong> Payment terms are Net 0 (immediate payment upon invoice issuance). Services will not commence until full prepayment is received and cleared funds are confirmed.
-            </p>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              4.2. <strong>Corporate Clients (B2B):</strong> Payment terms are Net 15 or Net 30 from the invoice date, as specified in the executed SOW. Late payments shall incur interest at a rate of 8% per annum above the Bank of England base rate, in accordance with the Late Payment of Commercial Debts (Interest) Act 1998.
-            </p>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              4.3. All fees are quoted exclusive of Value Added Tax (VAT). VAT shall be applied at the prevailing UK statutory rate and is payable in addition to the stated fees.
-            </p>
-            <p className="text-slate-700 leading-relaxed">
-              4.4. The Company accepts payment via bank transfer (BACS/CHAPS), corporate credit card, or other pre-approved payment methods. We do not issue payment cards or provide payment processing services.
-            </p>
-          </section>
-
-          {/* Section 5 */}
-          <section>
-            <h2 className="text-2xl font-serif text-navy mb-4">5. No-Refund Policy</h2>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              5.1. Due to the bespoke nature of our consultancy services and the allocation of specialist resources, <strong>all fees are non-refundable once the Statement of Work (SOW) has been executed and work has commenced.</strong>
-            </p>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              5.2. In the event of Client cancellation after commencement, the Client remains liable for the full contract value as stipulated in the SOW.
-            </p>
-            <p className="text-slate-700 leading-relaxed">
-              5.3. The Company may, at its sole discretion, consider partial refunds in exceptional circumstances where services have demonstrably failed to meet the agreed scope, subject to written arbitration.
-            </p>
-          </section>
-
-          {/* Section 6 */}
-          <section>
-            <h2 className="text-2xl font-serif text-navy mb-4">6. Confidentiality and Non-Disclosure</h2>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              6.1. All information exchanged between the Company and the Client shall be treated as strictly confidential and proprietary.
-            </p>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              6.2. The Company operates under a high-confidentiality framework for all consultancy engagements. Project documentation and deliverables are restricted to verified stakeholders and authorised compliance officers (e.g., HMRC, banking institutions, AML auditors).
-            </p>
-            <p className="text-slate-700 leading-relaxed">
-              6.3. Both parties agree not to disclose confidential information to third parties without prior written consent, except where required by law or regulatory obligation.
-            </p>
-          </section>
-
-          {/* Section 7 */}
-          <section>
-            <h2 className="text-2xl font-serif text-navy mb-4">7. Limitation of Liability</h2>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              7.1. The Company's total liability under these Terms, whether in contract, tort (including negligence), breach of statutory duty, or otherwise, shall not exceed the total fees paid by the Client for the specific engagement giving rise to the claim.
-            </p>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              7.2. The Company shall not be liable for any indirect, consequential, or incidental damages, including but not limited to loss of profits, revenue, data, or business opportunities.
-            </p>
-            <p className="text-slate-700 leading-relaxed">
-              7.3. Nothing in these Terms shall exclude or limit liability for death or personal injury caused by negligence, fraud, or fraudulent misrepresentation.
-            </p>
-          </section>
-
-          {/* Section 8 */}
-          <section>
-            <h2 className="text-2xl font-serif text-navy mb-4">8. Intellectual Property Rights</h2>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              8.1. All pre-existing intellectual property owned by the Company remains the exclusive property of GOLDENPAYS LTD.
-            </p>
-            <p className="text-slate-700 leading-relaxed">
-              8.2. Deliverables created specifically for the Client under an executed SOW shall transfer to the Client upon full payment, subject to the Company retaining the right to use anonymised case studies for marketing purposes.
-            </p>
-          </section>
-
-          {/* Section 9 */}
-          <section>
-            <h2 className="text-2xl font-serif text-navy mb-4">9. Termination</h2>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              9.1. Either party may terminate the engagement by providing 30 days' written notice, subject to settlement of all outstanding fees and completion of in-progress deliverables.
-            </p>
-            <p className="text-slate-700 leading-relaxed">
-              9.2. The Company reserves the right to terminate the engagement immediately in cases of Client breach, non-payment, or fraudulent conduct.
-            </p>
-          </section>
-
-          {/* Section 10 */}
-          <section>
-            <h2 className="text-2xl font-serif text-navy mb-4">10. Governing Law and Jurisdiction</h2>
-            <p className="text-slate-700 leading-relaxed mb-4">
-              10.1. These Terms and any dispute or claim arising out of or in connection with them shall be governed by and construed in accordance with the <strong>laws of England and Wales.</strong>
-            </p>
-            <p className="text-slate-700 leading-relaxed">
-              10.2. The parties irrevocably agree that the courts of England and Wales shall have exclusive jurisdiction to settle any dispute or claim arising out of or in connection with these Terms.
-            </p>
-          </section>
-
-          {/* Section 11 */}
-          <section>
-            <h2 className="text-2xl font-serif text-navy mb-4">11. Amendments</h2>
-            <p className="text-slate-700 leading-relaxed">
-              The Company reserves the right to amend these Terms at any time. Updated Terms shall be published on our website and shall take effect immediately upon publication. Continued use of our services constitutes acceptance of the amended Terms.
-            </p>
-          </section>
-
-          {/* Contact */}
-          <section className="mt-12 p-6 bg-slate-50 border border-slate-200">
-            <h3 className="font-bold text-navy mb-3">Contact Information</h3>
-            <p className="text-sm text-slate-700 leading-relaxed">
-              <strong>GOLDENPAYS LTD</strong><br />
-              Company Number: 16227513<br />
-              Registered Office: Office 12 Initial Business Centre, Wilson Business Park, Manchester, UK, M40 8WN<br />
-              Email: enquiries@goldenpays.uk<br />
-              <br />
-              For legal inquiries: legal@goldenpays.uk
-            </p>
-          </section>
-        </div>
-
-        <div className="mt-12 text-center">
-          <Link to="/" className="text-gold hover:underline text-sm font-medium">
-            ← Back to Home
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-};
+const TermsAndConditions: React.FC = () => (
+  <LegalLayout
+    title="Terms of Service"
+    updated="1 November 2026"
+    intro="Terms for software licences, digital products and technical services supplied by GOLDENPAYS LTD."
+    sections={sections}
+  />
+);
 
 export default TermsAndConditions;

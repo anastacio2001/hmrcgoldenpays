@@ -12,9 +12,21 @@ const contactSchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
   company: Joi.string().max(200).allow('').optional(),
   email: Joi.string().email().required(),
-  service: Joi.string().valid('Infrastructure Audit', 'Strategic Advisory', 'Cloud Migration', 'Compliance Review', 'Other').required(),
+  // Must match SERVICE_OPTIONS in pages/Contact.tsx
+  service: Joi.string().valid(
+    'Platform Licences & Digital Tooling',
+    'Full-Stack Development Sprints',
+    'Technical Systems & API Integration',
+    'Cloud Infrastructure & Data Hosting',
+    'Custom Project',
+    'Other'
+  ).required(),
   message: Joi.string().min(10).max(2000).required(),
 });
+
+// Escape user input before interpolating it into email HTML
+const escapeHtml = (str) =>
+  str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 // Initialize Resend client
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -32,6 +44,13 @@ router.post('/submit', async (req, res) => {
     }
 
     const { name, company, email, service, message } = value;
+    const safe = {
+      name: escapeHtml(name),
+      company: escapeHtml(company || ''),
+      email: escapeHtml(email),
+      service: escapeHtml(service),
+      message: escapeHtml(message),
+    };
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@goldenpays.uk';
@@ -50,28 +69,28 @@ router.post('/submit', async (req, res) => {
           <table style="width: 100%; border-collapse: collapse;">
             <tr style="border-bottom: 1px solid #dee2e6;">
               <td style="padding: 12px 0; font-weight: bold; color: #495057;">Name:</td>
-              <td style="padding: 12px 0; color: #212529;">${name}</td>
+              <td style="padding: 12px 0; color: #212529;">${safe.name}</td>
             </tr>
-            ${company ? `
+            ${safe.company ? `
             <tr style="border-bottom: 1px solid #dee2e6;">
               <td style="padding: 12px 0; font-weight: bold; color: #495057;">Company:</td>
-              <td style="padding: 12px 0; color: #212529;">${company}</td>
+              <td style="padding: 12px 0; color: #212529;">${safe.company}</td>
             </tr>
             ` : ''}
             <tr style="border-bottom: 1px solid #dee2e6;">
               <td style="padding: 12px 0; font-weight: bold; color: #495057;">Email:</td>
-              <td style="padding: 12px 0; color: #212529;"><a href="mailto:${email}" style="color: #C5A059;">${email}</a></td>
+              <td style="padding: 12px 0; color: #212529;"><a href="mailto:${safe.email}" style="color: #C5A059;">${safe.email}</a></td>
             </tr>
             <tr style="border-bottom: 1px solid #dee2e6;">
               <td style="padding: 12px 0; font-weight: bold; color: #495057;">Service:</td>
-              <td style="padding: 12px 0; color: #212529;">${service}</td>
+              <td style="padding: 12px 0; color: #212529;">${safe.service}</td>
             </tr>
           </table>
           
           <div style="margin-top: 20px;">
             <p style="font-weight: bold; color: #495057; margin-bottom: 10px;">Message:</p>
             <div style="background-color: white; padding: 15px; border-left: 4px solid #C5A059; color: #212529; line-height: 1.6;">
-              ${message.replace(/\n/g, '<br>')}
+              ${safe.message.replace(/\n/g, '<br>')}
             </div>
           </div>
         </div>
@@ -88,23 +107,23 @@ router.post('/submit', async (req, res) => {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #001F3F; color: white; padding: 20px; text-align: center;">
           <h1 style="margin: 0; font-size: 24px;">GOLDENPAYS LTD</h1>
-          <p style="margin: 5px 0 0 0; font-size: 12px; letter-spacing: 2px;">CORPORATE TECH BOUTIQUE</p>
+          <p style="margin: 5px 0 0 0; font-size: 12px; letter-spacing: 2px;">SOFTWARE ENGINEERING &amp; CLOUD AUTOMATION</p>
         </div>
         
         <div style="padding: 30px; background-color: #ffffff; border: 1px solid #e9ecef;">
           <h2 style="color: #001F3F; margin-top: 0;">Thank You for Your Inquiry</h2>
           
-          <p style="color: #495057; line-height: 1.6;">Dear ${name},</p>
+          <p style="color: #495057; line-height: 1.6;">Dear ${safe.name},</p>
           
           <p style="color: #495057; line-height: 1.6;">
-            We acknowledge receipt of your inquiry regarding <strong>${service}</strong>. 
+            We acknowledge receipt of your inquiry regarding <strong>${safe.service}</strong>. 
             Our team will review your request and respond within 2 business days.
           </p>
           
           <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #C5A059; margin: 20px 0;">
             <p style="margin: 0; color: #495057; font-size: 14px;">
               <strong>Reference Details:</strong><br>
-              Service: ${service}<br>
+              Service: ${safe.service}<br>
               Submitted: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}
             </p>
           </div>
@@ -116,7 +135,7 @@ router.post('/submit', async (req, res) => {
           <p style="color: #495057; line-height: 1.6;">
             Best regards,<br>
             <strong>GOLDENPAYS LTD</strong><br>
-            Strategic Technology Advisory
+            Software Engineering &amp; Cloud Automation Studio
           </p>
         </div>
         
