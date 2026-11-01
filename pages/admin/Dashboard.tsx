@@ -8,7 +8,8 @@ interface Stats {
   activeClients: number;
   activeProjects: number;
   pipelineValue: number;
-  publishedDeliverables: number;
+  outstanding: number;
+  overdue: number;
 }
 
 const count = async (table: string, column?: string, value?: string | boolean) => {
@@ -27,21 +28,23 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [newInquiries, activeClients, activeProjects, publishedDeliverables, values, latest] = await Promise.all([
+        const [newInquiries, activeClients, activeProjects, values, pending, latest] = await Promise.all([
           count('inquiries', 'status', 'new'),
           count('clients', 'status', 'active'),
           count('projects', 'status', 'active'),
-          count('deliverables', 'is_public', true),
           supabase!.from('projects').select('value_gbp').in('status', ['planning', 'active', 'on-hold']),
+          supabase!.from('payments').select('amount_gbp, vat_gbp, due_on').eq('status', 'pending'),
           supabase!.from('inquiries').select('*').order('created_at', { ascending: false }).limit(5),
         ]);
         if (values.error) throw values.error;
+        if (pending.error) throw pending.error;
         if (latest.error) throw latest.error;
         setStats({
           newInquiries,
           activeClients,
           activeProjects,
-          publishedDeliverables,
+          outstanding: pending.data.reduce((sum, p) => sum + Number(p.amount_gbp) + Number(p.vat_gbp), 0),
+          overdue: pending.data.filter((p) => p.due_on && p.due_on < new Date().toISOString().slice(0, 10)).length,
           pipelineValue: values.data.reduce((sum, p) => sum + Number(p.value_gbp ?? 0), 0),
         });
         setRecent(latest.data as Inquiry[]);
@@ -60,12 +63,13 @@ const Dashboard: React.FC = () => {
     <div>
       <PageTitle title="Dashboard" subtitle="Live figures from the GOLDENPAYS database." />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label="New inquiries" value={stats.newInquiries} />
         <Stat label="Active clients" value={stats.activeClients} />
         <Stat label="Active projects" value={stats.activeProjects} />
         <Stat label="Open pipeline" value={formatGbp(stats.pipelineValue)} />
-        <Stat label="Published deliveries" value={stats.publishedDeliverables} />
+        <Stat label="Outstanding payments" value={formatGbp(stats.outstanding)} />
+        <Stat label="Overdue payments" value={<Link to="/admin/payments" className={stats.overdue ? 'text-red-600 hover:underline' : ''}>{stats.overdue}</Link>} />
       </div>
 
       <Card className="mt-8">

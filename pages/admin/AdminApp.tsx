@@ -9,6 +9,7 @@ const Dashboard = lazy(() => import('./Dashboard'));
 const Inquiries = lazy(() => import('./Inquiries'));
 const Clients = lazy(() => import('./Clients'));
 const Projects = lazy(() => import('./Projects'));
+const Payments = lazy(() => import('./Payments'));
 const Deliverables = lazy(() => import('./Deliverables'));
 const Settings = lazy(() => import('./Settings'));
 
@@ -26,6 +27,7 @@ const AdminApp: React.FC = () => (
               <Route path="inquiries" element={<Inquiries />} />
               <Route path="clients" element={<Clients />} />
               <Route path="projects" element={<Projects />} />
+              <Route path="payments" element={<Payments />} />
               <Route path="deliverables" element={<Deliverables />} />
               <Route path="settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="dashboard" replace />} />

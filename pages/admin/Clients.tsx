@@ -60,7 +60,7 @@ const Clients: React.FC = () => {
   const remove = async (client: Client) => {
     if (!window.confirm(`Delete ${client.name}? Their projects will be kept without a client.`)) return;
     const { error } = await supabase!.from('clients').delete().eq('id', client.id);
-    if (error) setError('Could not delete the client.');
+    if (error) setError(error.code === '23503' ? 'This client has payments recorded and cannot be deleted. Mark them inactive instead.' : 'Could not delete the client.');
     else setClients((list) => list!.filter((c) => c.id !== client.id));
   };
 

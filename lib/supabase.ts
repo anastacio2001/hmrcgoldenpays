@@ -61,3 +61,26 @@ export interface Deliverable extends VerifiedDeliverable {
   project_id: string | null;
   created_at: string;
 }
+
+export type PaymentStatus = 'pending' | 'paid' | 'refunded' | 'cancelled';
+export type PaymentKind = 'invoice' | 'deposit' | 'balance' | 'subscription' | 'licence';
+export type PaymentMethod = 'stripe' | 'bank-transfer' | 'other';
+
+export interface Payment {
+  id: string;
+  invoice_number: string;
+  client_id: string | null;
+  project_id: string | null;
+  description: string;
+  kind: PaymentKind;
+  method: PaymentMethod;
+  amount_gbp: number;
+  vat_gbp: number;
+  status: PaymentStatus;
+  issued_on: string;
+  due_on: string | null;
+  paid_on: string | null;
+  stripe_payment_id: string | null;
+  notes: string | null;
+  created_at: string;
+}

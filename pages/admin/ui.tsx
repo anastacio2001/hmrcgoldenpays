@@ -45,6 +45,11 @@ const badgeColors: Record<string, string> = {
   planning: 'bg-sky-100 text-sky-800',
   'on-hold': 'bg-amber-100 text-amber-800',
   completed: 'bg-violet-100 text-violet-800',
+  pending: 'bg-sky-100 text-sky-800',
+  paid: 'bg-emerald-100 text-emerald-800',
+  overdue: 'bg-red-100 text-red-800',
+  refunded: 'bg-violet-100 text-violet-800',
+  cancelled: 'bg-slate-200 text-slate-700',
   public: 'bg-emerald-100 text-emerald-800',
   private: 'bg-slate-200 text-slate-700',
 };

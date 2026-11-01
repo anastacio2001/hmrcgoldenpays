@@ -9,6 +9,7 @@ const menuItems = [
   { name: 'Inquiries', path: '/admin/inquiries' },
   { name: 'Clients', path: '/admin/clients' },
   { name: 'Projects', path: '/admin/projects' },
+  { name: 'Payments', path: '/admin/payments' },
   { name: 'Deliverables', path: '/admin/deliverables' },
   { name: 'Settings', path: '/admin/settings' },
 ];

@@ -27,7 +27,7 @@ npm run dev                  # http://localhost:3000
 | `/company` | Director profile and corporate information |
 | `/contact` | Enquiry form (`?package=sprint` preselects a service) |
 | `/legal/terms`, `/legal/privacy`, `/legal/refunds` | Legal pages |
-| `/admin` | Admin panel: inquiries, clients, projects, deliverables (Supabase Auth) |
+| `/admin` | Admin panel: inquiries, clients, projects, payments, deliverables (Supabase Auth) |
 
 Company facts, SIC codes and package prices live in `data/site.ts`.
 
@@ -50,6 +50,7 @@ Migrations live in `supabase/migrations/` (apply in order in the SQL editor, or 
 |---|---|
 | `inquiries` | Visitors can insert only (rate-limited: 3/hour per email, 30/10 min overall). Admins read/update/delete. |
 | `clients`, `projects` | Admins only |
+| `payments` | Admins only. Clients with payments cannot be deleted (records kept for accounting). `stripe_payment_id` is reserved for a future Stripe webhook. |
 | `deliverables` | Admins only; the public reads one published record at a time via `verify_deliverable()` |
 
 Enquiry emails are sent by a database trigger through Resend (`pg_net`). Vault secrets: `resend_api_key`, `resend_from_email`, `admin_email`.
