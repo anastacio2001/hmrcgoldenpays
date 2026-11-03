@@ -86,7 +86,8 @@ Guidance:
 - red_flags: reasons not to contact or to be careful (dissolved/dormant signs, not an SME, already sells similar services, consumer-only, etc.). Empty if none.
 - recommended_offering: the single best package, or "none".
 - emails: exactly 4 steps (day 0, +3, +7, +14). Under 110 words each. Step 1 must reference one specific, verifiable observation about the company.
-  Address the named person by first name if given, otherwise "Hi there". Do not add a signature, company details or unsubscribe text: they are appended automatically.
+  Address the named person by first name if given, otherwise "Hi there". End with the question or call to action: no sign-off, name, signature,
+  company details or unsubscribe text (they are appended automatically). Number the steps 1 to 4.
 - letter: the body of a one-page postal letter (3-4 short paragraphs, under 230 words), no address block, greeting or sign-off. Offer the free 20-minute automation check.
 - linkedin_note: a connection request under 280 characters, no pitch in the first sentence.
 - call_opener: two or three sentences the director can say in the first 20 seconds of a call.`;
@@ -237,7 +238,11 @@ async function fetchText(url: string): Promise<string | null> {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GOLDENPAYS-LeadCheck/1.0; +https://goldenpays.uk)' },
     });
     if (!res.ok || !(res.headers.get('content-type') ?? '').includes('text/html')) return null;
-    return stripHtml((await res.text()).slice(0, 400_000));
+    const html = (await res.text()).slice(0, 400_000);
+    const meta = [...html.matchAll(/<(?:title)[^>]*>([^<]*)<\/title>|<meta[^>]+(?:name|property)=["'](?:description|og:title|og:description)["'][^>]*content=["']([^"']*)["']/gi)]
+      .map((m) => (m[1] ?? m[2] ?? '').trim()).filter(Boolean);
+    const text = stripHtml(html);
+    return meta.length ? `Page metadata: ${[...new Set(meta)].join(' | ')}\n${text}` : text;
   } catch {
     return null;
   }
@@ -295,7 +300,13 @@ ${site || '(no website content available: rely on Companies House data and secto
     pains: data.pains,
     recommended_offering: data.recommended_offering,
     red_flags: data.red_flags,
-    emails: data.emails.slice(0, 4),
+    // Steps are matched to the sequence by number, and the signature is appended when sending.
+    // deno-lint-ignore no-explicit-any
+    emails: data.emails.slice(0, 4).map((e: any, i: number) => ({
+      step: i + 1,
+      subject: e.subject,
+      body: e.body.replace(/\n+(best|kind|warm)?\s*(regards|wishes)[\s\S]{0,60}$/i, '').trim(),
+    })),
     letter: data.letter,
     linkedin_note: data.linkedin_note,
     call_opener: data.call_opener,
