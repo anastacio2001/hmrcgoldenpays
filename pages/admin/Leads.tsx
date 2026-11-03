@@ -6,6 +6,18 @@ import { Badge, Card, Empty, ErrorBox, Modal, PageTitle, Spinner, Stat, btn, btn
 const STATUSES: LeadStatus[] = ['new', 'qualified', 'contacted', 'replied', 'meeting', 'proposal', 'won', 'lost', 'excluded'];
 const PAGE_LIMIT = 500;
 
+// "What have we found for this lead?" filter.
+const CONTACT_FILTERS = [
+  { id: 'all', label: 'Any contact status' },
+  { id: 'found', label: 'Contact found (any)' },
+  { id: 'director', label: 'Director email (Hunter)' },
+  { id: 'email', label: 'Any email' },
+  { id: 'phone', label: 'Phone' },
+  { id: 'website', label: 'Website' },
+  { id: 'none', label: 'Nothing found yet' },
+] as const;
+type ContactFilter = (typeof CONTACT_FILTERS)[number]['id'];
+
 // SIC 2007 codes for the segments in our acquisition plan.
 const SIC_PRESETS = [
   { code: '47910', label: 'Online retail' },
@@ -36,6 +48,19 @@ const csvCell = (value: unknown) => {
 
 const chUrl = (number: string) => `https://find-and-update.company-information.service.gov.uk/company/${number}`;
 
+// deno-lint-ignore no-explicit-any
+function applyContactFilter<T extends { not: any; or: any; is: any }>(q: T, f: ContactFilter): T {
+  switch (f) {
+    case 'found': return q.or('email.not.is.null,contact_email.not.is.null,phone.not.is.null,website.not.is.null');
+    case 'director': return q.not('contact_email', 'is', null);
+    case 'email': return q.or('email.not.is.null,contact_email.not.is.null');
+    case 'phone': return q.not('phone', 'is', null);
+    case 'website': return q.not('website', 'is', null);
+    case 'none': return q.is('email', null).is('contact_email', null).is('phone', null).is('website', null);
+    default: return q;
+  }
+}
+
 const Leads: React.FC = () => {
   const [tab, setTab] = useState<'leads' | 'searches'>('leads');
   const [leads, setLeads] = useState<Lead[] | null>(null);
@@ -45,7 +70,8 @@ const Leads: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterSearch, setFilterSearch] = useState('all');
   const [query, setQuery] = useState('');
-  const [onlyWithEmail, setOnlyWithEmail] = useState(false);
+  const [contactFilter, setContactFilter] = useState<ContactFilter>('all');
+  const [contactCounts, setContactCounts] = useState<Partial<Record<ContactFilter, number>>>({});
   const [withEmail, setWithEmail] = useState(0);
   const [pendingEnrich, setPendingEnrich] = useState(0);
   const [selected, setSelected] = useState<Lead | null>(null);
@@ -61,13 +87,16 @@ const Leads: React.FC = () => {
     let q = supabase!.from('leads').select('*').order('created_at', { ascending: false }).limit(PAGE_LIMIT);
     if (filterStatus !== 'all') q = q.eq('status', filterStatus);
     if (filterSearch !== 'all') q = q.eq('search_id', filterSearch);
-    if (onlyWithEmail) q = q.not('email', 'is', null);
-    const term = query.trim();
-    if (term) q = q.or(`company_name.ilike.%${term.replace(/[%,()]/g, '')}%,locality.ilike.%${term.replace(/[%,()]/g, '')}%,postcode.ilike.%${term.replace(/[%,()]/g, '')}%`);
+    q = applyContactFilter(q, contactFilter);
+    const term = query.trim().replace(/[%,()*]/g, '');
+    if (term) {
+      const fields = ['company_name', 'company_number', 'locality', 'postcode', 'email', 'contact_email', 'contact_name', 'website', 'phone', 'notes'];
+      q = q.or(fields.map((f) => `${f}.ilike.%${term}%`).join(','));
+    }
     const { data, error } = await q;
     if (error) setError('Could not load leads.');
     else setLeads(data as Lead[]);
-  }, [filterStatus, filterSearch, query, onlyWithEmail]);
+  }, [filterStatus, filterSearch, query, contactFilter]);
 
   const loadMeta = async () => {
     const [s, r, we, pe, ...statusCounts] = await Promise.all([
@@ -84,6 +113,11 @@ const Leads: React.FC = () => {
     setSearches(s.data as LeadSearch[]);
     setRuns(r.data as LeadRun[]);
     setWithEmail(we.count ?? 0);
+    const filterCounts = await Promise.all(CONTACT_FILTERS.filter((c) => c.id !== 'all').map(async (c) => {
+      const { count } = await applyContactFilter(supabase!.from('leads').select('*', { count: 'exact', head: true }), c.id);
+      return [c.id, count ?? 0] as const;
+    }));
+    setContactCounts(Object.fromEntries(filterCounts));
     setPendingEnrich(pe.count ?? 0);
     setCounts(Object.fromEntries(STATUSES.map((st, i) => [st, statusCounts[i].count ?? 0])));
   };
@@ -289,8 +323,21 @@ const Leads: React.FC = () => {
 
       {tab === 'leads' ? (
         <>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-slate-500">Found:</span>
+            {(['found', 'director', 'email', 'phone', 'website'] as ContactFilter[]).map((id) => {
+              const c = CONTACT_FILTERS.find((x) => x.id === id)!;
+              const on = contactFilter === id;
+              return (
+                <button key={id} onClick={() => { setContactFilter(on ? 'all' : id); setFilterStatus('all'); }}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${on ? 'border-accent bg-accent text-white' : 'border-steel bg-white text-slate-700 hover:border-accent'}`}>
+                  {c.label} · {contactCounts[id] ?? 0}
+                </button>
+              );
+            })}
+          </div>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filter leads by company, town or postcode…" className={`${inputClass} sm:max-w-xs`} />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search company, email, director, phone, website, town…" className={`${inputClass} sm:max-w-xs`} />
             <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`${inputClass} sm:w-40`}>
               <option value="all">All statuses</option>
               {STATUSES.map((s) => <option key={s} value={s}>{s} ({counts[s] ?? 0})</option>)}
@@ -299,9 +346,11 @@ const Leads: React.FC = () => {
               <option value="all">All searches</option>
               {searches.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            <label className="flex items-center gap-2 whitespace-nowrap text-sm text-slate-700">
-              <input type="checkbox" checked={onlyWithEmail} onChange={(e) => setOnlyWithEmail(e.target.checked)} className="accent-accent" /> With email
-            </label>
+            <select value={contactFilter} onChange={(e) => setContactFilter(e.target.value as ContactFilter)} className={`${inputClass} sm:w-56`}>
+              {CONTACT_FILTERS.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}{c.id !== 'all' && contactCounts[c.id] != null ? ` (${contactCounts[c.id]})` : ''}</option>
+              ))}
+            </select>
             <button onClick={enrichNow} disabled={!!running || pendingEnrich === 0} className={`${btnGhost} sm:ml-auto`}>{running === 'enrich' ? 'Searching…' : 'Find websites & emails'}</button>
             <button onClick={exportCsv} className={btnGhost}>Export CSV</button>
           </div>
