@@ -91,7 +91,7 @@ const Leads: React.FC = () => {
     const term = query.trim().replace(/[%,()*]/g, '');
     if (term) {
       const fields = ['company_name', 'company_number', 'locality', 'postcode', 'email', 'contact_email', 'contact_name', 'website', 'phone', 'notes'];
-      q = q.or(fields.map((f) => `${f}.ilike.%${term}%`).join(','));
+      q = q.or(fields.map((f) => `${f}.ilike.*${term}*`).join(","));
     }
     const { data, error } = await q;
     if (error) setError('Could not load leads.');
