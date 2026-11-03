@@ -6,6 +6,7 @@ import AdminLayout from '../../components/AdminLayout';
 import AdminLogin from './AdminLogin';
 
 const Dashboard = lazy(() => import('./Dashboard'));
+const Leads = lazy(() => import('./Leads'));
 const Inquiries = lazy(() => import('./Inquiries'));
 const Clients = lazy(() => import('./Clients'));
 const Projects = lazy(() => import('./Projects'));
@@ -28,6 +29,7 @@ const AdminApp: React.FC = () => (
             <Routes>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="leads" element={<Leads />} />
               <Route path="inquiries" element={<Inquiries />} />
               <Route path="clients" element={<Clients />} />
               <Route path="projects" element={<Projects />} />

@@ -19,12 +19,22 @@ const sections: LegalSection[] = [
     ),
   },
   {
+    title: 'Business contacts from public registers',
+    body: (
+      <>
+        <p>To find UK companies that may benefit from our services, we use the public Companies House register: company name, number, registered office, SIC codes and the names of active directors. We may add a business email address or phone number published on the company's own website.</p>
+        <p>We contact incorporated companies only, never sole traders or individuals, on the basis of our legitimate interest in B2B marketing. Every message identifies GOLDENPAYS LTD and offers a simple way to opt out; if you ask us to stop, we keep a record so that you are never contacted again. Prospect records without a response are deleted after 12 months.</p>
+      </>
+    ),
+  },
+  {
     title: 'Why we use it and our lawful basis',
     body: (
       <ul>
         <li>Responding to enquiries and delivering services: <em>contract</em> or steps prior to a contract.</li>
         <li>Invoicing, accounting and tax records: <em>legal obligation</em>.</li>
         <li>Fraud prevention and service security: <em>legitimate interests</em>.</li>
+        <li>B2B prospecting of incorporated companies: <em>legitimate interests</em>; you can object at any time.</li>
         <li>Analytics cookies: <em>consent</em>, which you can withdraw at any time.</li>
       </ul>
     ),

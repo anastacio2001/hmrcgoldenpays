@@ -130,3 +130,53 @@ export interface ComplianceDeadline {
   notes: string | null;
   created_at: string;
 }
+
+export type LeadStatus = 'new' | 'qualified' | 'contacted' | 'replied' | 'meeting' | 'proposal' | 'won' | 'lost' | 'excluded';
+
+export interface Lead {
+  id: string;
+  company_number: string;
+  company_name: string;
+  company_type: string | null;
+  incorporated_on: string | null;
+  sic_codes: string[];
+  address: string | null;
+  locality: string | null;
+  postcode: string | null;
+  directors: string[];
+  website: string | null;
+  email: string | null;
+  phone: string | null;
+  status: LeadStatus;
+  notes: string | null;
+  search_id: string | null;
+  last_contacted_at: string | null;
+  created_at: string;
+}
+
+export interface LeadSearch {
+  id: string;
+  name: string;
+  sic_codes: string[];
+  location: string | null;
+  company_type: 'ltd' | 'plc' | 'llp';
+  incorporated_from: string | null;
+  incorporated_to: string | null;
+  max_results: number;
+  is_active: boolean;
+  last_run_at: string | null;
+  last_found: number | null;
+  last_inserted: number | null;
+  created_at: string;
+}
+
+export interface LeadRun {
+  id: string;
+  trigger: 'cron' | 'manual';
+  started_at: string;
+  finished_at: string | null;
+  searches: number;
+  found: number;
+  inserted: number;
+  error: string | null;
+}

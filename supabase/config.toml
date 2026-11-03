@@ -3,3 +3,7 @@ project_id = "bwbmbwwjdcxendypshyb"
 # Stripe calls this endpoint without a Supabase JWT; requests are verified by signature instead.
 [functions.stripe-webhook]
 verify_jwt = false
+
+# Called by pg_cron (shared secret) and by the admin UI (JWT checked inside the function).
+[functions.companies-house-leads]
+verify_jwt = false
