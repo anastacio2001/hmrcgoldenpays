@@ -36,7 +36,7 @@ Company facts, SIC codes and package prices live in `data/site.ts`.
 Set the Payment Link for each package in Vercel:
 
 ```
-VITE_STRIPE_LINK_LICENCE  VITE_STRIPE_LINK_SPRINT
+VITE_STRIPE_LINK_LICENCE  VITE_STRIPE_LINK_LICENCE_PERPETUAL  VITE_STRIPE_LINK_SPRINT
 VITE_STRIPE_LINK_INTEGRATION  VITE_STRIPE_LINK_CLOUD
 ```
 
@@ -51,7 +51,7 @@ secret; no Stripe API key is stored anywhere.
 1. Deploy: `supabase functions deploy stripe-webhook --project-ref bwbmbwwjdcxendypshyb --no-verify-jwt`
 2. Stripe → Developers → Webhooks → **Add endpoint**
    - URL: `https://bwbmbwwjdcxendypshyb.supabase.co/functions/v1/stripe-webhook`
-   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `charge.refunded`
+   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `charge.refunded`, `invoice.paid` (subscription renewals)
 3. Copy the signing secret (`whsec_…`) to Supabase → Edge Functions → Secrets as `STRIPE_WEBHOOK_SECRET`.
 4. For each Payment Link set metadata `package` = `licence` | `sprint` | `integration` | `cloud`,
    and the after-payment redirect to `https://goldenpays.uk/thank-you`.

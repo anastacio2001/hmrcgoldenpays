@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { OFFERINGS, offeringHref } from '../data/site';
+import { OFFERINGS, PERPETUAL_LICENCE_CHECKOUT_URL, offeringHref } from '../data/site';
 import { PageHeader, SicBadge, SmartLink, btnPrimary, btnOutline } from '../components/ui';
 
 const licence = OFFERINGS.find((o) => o.id === 'licence')!;
@@ -12,8 +12,8 @@ const categories = [
 ];
 
 const plans = [
-  { name: 'Subscription', price: '£49', unit: '/ month', points: ['Hosted access', 'All updates while subscribed', 'Cancel any time'], primary: true },
-  { name: 'Perpetual licence', price: '£199', unit: 'one-off', points: ['One-off payment', 'Self-hosted deployment', 'Licence never expires'], primary: false },
+  { name: 'Subscription', price: '£49', unit: '/ month', points: ['Hosted access', 'All updates while subscribed', 'Cancel any time'], primary: true, href: offeringHref(licence) },
+  { name: 'Perpetual licence', price: '£199', unit: 'one-off', points: ['One-off payment', 'Self-hosted deployment', 'Licence never expires'], primary: false, href: PERPETUAL_LICENCE_CHECKOUT_URL || '/contact?package=licence' },
 ];
 
 const SaasCatalog: React.FC = () => (
@@ -53,7 +53,7 @@ const SaasCatalog: React.FC = () => (
               <ul className="mt-6 space-y-2 text-sm text-slate-600">
                 {plan.points.map((p) => <li key={p}>· {p}</li>)}
               </ul>
-              <SmartLink to={offeringHref(licence)} className={`${plan.primary ? btnPrimary : btnOutline} mt-8 w-full`}>
+              <SmartLink to={plan.href} className={`${plan.primary ? btnPrimary : btnOutline} mt-8 w-full`}>
                 {licence.cta}
               </SmartLink>
             </div>

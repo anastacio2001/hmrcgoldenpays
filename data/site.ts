@@ -81,6 +81,9 @@ export const OFFERINGS: Offering[] = [
   },
 ];
 
+/** Stripe Payment Link for the one-off perpetual licence (the licence offering above is the monthly plan). */
+export const PERPETUAL_LICENCE_CHECKOUT_URL: string | undefined = import.meta.env.VITE_STRIPE_LINK_LICENCE_PERPETUAL;
+
 /** Where an offering's CTA should send the visitor. */
 export const offeringHref = (offering: Offering) =>
   offering.checkoutUrl || `/contact?package=${offering.id}`;

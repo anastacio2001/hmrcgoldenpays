@@ -39,7 +39,7 @@ const capabilityDetail: Record<string, string> = {
 const stack = ['TypeScript', 'React', 'Node.js', 'PostgreSQL', 'Supabase', 'Stripe', 'REST', 'GraphQL', 'Vercel', 'Docker', 'Webhooks', 'CI/CD'];
 
 const steps = [
-  { title: 'Purchase or book', body: 'Pay online through Stripe, or reserve a sprint with a deposit.' },
+  { title: 'Purchase or book', body: 'Pay online through Stripe, or request an invoice for custom work.' },
   { title: 'Scope in writing', body: 'Requirements and delivery schedule confirmed within two business days.' },
   { title: 'Build & deploy', body: 'Code lands in your repository and environment, with progress updates throughout.' },
   { title: 'Accept & verify', body: 'You sign off, we issue a GPY reference with a SHA-256 fingerprint.' },
@@ -53,9 +53,9 @@ const guarantees = [
 ];
 
 const faqs = [
-  { q: 'How do I pay?', a: 'Licences and fixed-scope packages can be paid online by card through Stripe. Sprints can be reserved with a deposit and the balance invoiced on delivery. Prices exclude VAT where applicable.' },
+  { q: 'How do I pay?', a: 'Every package on this site is paid online by card through Stripe. Custom projects are invoiced. All prices are in GBP; GOLDENPAYS LTD is not VAT registered, so no VAT is added.' },
   { q: 'Who owns the software you build?', a: 'Code written specifically for you becomes yours on full payment. We keep ownership of our pre-existing tools and grant you a perpetual licence to any included in your delivery.' },
-  { q: 'What happens if I need to cancel?', a: 'Subscriptions can be cancelled any time. Sprint deposits are refundable if you cancel more than 5 business days before the start. Full details are in our Refund & Cancellation Policy.' },
+  { q: 'What happens if I need to cancel?', a: 'Subscriptions can be cancelled any time. Sprints cancelled more than 5 business days before the start are refunded in full. Full details are in our Refund & Cancellation Policy.' },
   { q: 'What does the Verification Portal show?', a: 'Only deliveries the client has accepted and agreed to publish: a reference, a sanitized client classification, the deliverable, the acceptance date and a tamper-evident fingerprint. No personal data.' },
 ];
 
@@ -236,7 +236,7 @@ const Home: React.FC = () => (
             <Eyebrow>Productized services</Eyebrow>
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-obsidian md:text-5xl">Transparent pricing.<br className="hidden md:block" /> Book online.</h2>
           </div>
-          <p className="max-w-sm text-sm text-slate-500">Fixed scopes with published prices. Pay by card through Stripe, or reserve a sprint with a deposit.</p>
+          <p className="max-w-sm text-sm text-slate-500">Fixed scopes with published prices, paid securely by card through Stripe.</p>
         </Reveal>
         <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {OFFERINGS.map((offering, i) => (
@@ -246,7 +246,7 @@ const Home: React.FC = () => (
           ))}
         </div>
         <p className="mt-6 text-xs text-slate-500">
-          Prices exclude VAT where applicable. See our <Link to="/legal/refunds" className="underline">Refund & Cancellation Policy</Link>.
+          All prices in GBP. No VAT is charged (not VAT registered). See our <Link to="/legal/refunds" className="underline">Refund & Cancellation Policy</Link>.
         </p>
       </div>
     </section>

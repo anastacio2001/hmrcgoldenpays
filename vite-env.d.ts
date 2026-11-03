@@ -17,6 +17,7 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string
   readonly VITE_SUPABASE_ANON_KEY?: string
   readonly VITE_STRIPE_LINK_LICENCE?: string
+  readonly VITE_STRIPE_LINK_LICENCE_PERPETUAL?: string
   readonly VITE_STRIPE_LINK_SPRINT?: string
   readonly VITE_STRIPE_LINK_INTEGRATION?: string
   readonly VITE_STRIPE_LINK_CLOUD?: string

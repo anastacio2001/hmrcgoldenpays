@@ -36,8 +36,8 @@ const sections: LegalSection[] = [
     title: 'Prices and payment',
     body: (
       <>
-        <p>Prices are shown in pounds sterling and exclude VAT where applicable. Online payments are processed by Stripe; we do not store your card details.</p>
-        <p>Subscriptions and retainers are billed in advance each month until cancelled. Sprints may require a deposit to reserve the start date, with the balance due on delivery. Invoices are payable within 14 days unless otherwise agreed.</p>
+        <p>Prices are shown in pounds sterling. GOLDENPAYS LTD is not currently registered for VAT, so no VAT is charged. Online payments are processed by Stripe; we do not store your card details.</p>
+        <p>Subscriptions and retainers are billed in advance each month until cancelled. Packages are paid in full at checkout. Custom engagements are invoiced, and invoices are payable within 14 days unless otherwise agreed.</p>
       </>
     ),
   },

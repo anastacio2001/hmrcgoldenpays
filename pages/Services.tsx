@@ -4,7 +4,7 @@ import { OFFERINGS } from '../data/site';
 import { OfferingCard, PageHeader } from '../components/ui';
 
 const steps = [
-  { title: 'Purchase or book', body: 'Pay securely through Stripe checkout, or request a deposit invoice for sprints and integrations.' },
+  { title: 'Purchase or book', body: 'Pay securely through Stripe checkout, or request an invoice for a custom scope.' },
   { title: 'Scope confirmation', body: 'Within two business days we confirm requirements and the delivery schedule in writing.' },
   { title: 'Delivery', body: 'Work is delivered to your repository or cloud environment, with progress updates throughout.' },
   { title: 'Acceptance & record', body: 'On sign-off, a delivery reference (GPY-YYYY-XXXX) is issued and, with your consent, published to the Verification Portal.' },
@@ -15,7 +15,7 @@ const Services: React.FC = () => (
     <PageHeader
       eyebrow="Productized services"
       title="Fixed scopes, published prices, online payment."
-      intro="Choose a package and pay online, or book a sprint with a deposit. Every engagement ends with a documented, verifiable delivery."
+      intro="Choose a package and pay online in minutes. Every engagement ends with a documented, verifiable delivery."
     />
 
     <section className="mx-auto max-w-6xl px-6 py-20">
@@ -25,7 +25,7 @@ const Services: React.FC = () => (
         ))}
       </div>
       <p className="mt-6 text-xs text-slate-500">
-        Prices exclude VAT where applicable. Purchases are subject to our <Link to="/legal/terms" className="underline">Terms of Service</Link> and{' '}
+        All prices in GBP. No VAT is charged (not VAT registered). Purchases are subject to our <Link to="/legal/terms" className="underline">Terms of Service</Link> and{' '}
         <Link to="/legal/refunds" className="underline">Refund & Cancellation Policy</Link>.
       </p>
     </section>

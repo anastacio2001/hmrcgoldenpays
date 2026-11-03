@@ -29,8 +29,8 @@ const sections: LegalSection[] = [
     title: 'Development sprints and integrations',
     body: (
       <ul>
-        <li>Cancel more than 5 business days before the scheduled start: full refund of any deposit.</li>
-        <li>Cancel within 5 business days of the start: the deposit is retained to cover reserved capacity.</li>
+        <li>Cancel more than 5 business days before the scheduled start: full refund.</li>
+        <li>Cancel within 5 business days of the start: 50% refund; the remainder covers reserved capacity.</li>
         <li>Cancel after work has started: you pay for work performed to the cancellation date; any amount paid beyond that is refunded.</li>
         <li>If you are a consumer and asked us to start within the 14-day cancellation period, you may still cancel within that period but must pay for the service supplied up to cancellation.</li>
       </ul>

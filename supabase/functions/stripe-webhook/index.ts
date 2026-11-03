@@ -7,9 +7,10 @@
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by Supabase.
 //
 // Events: checkout.session.completed, checkout.session.async_payment_succeeded,
-//         checkout.session.async_payment_failed, charge.refunded
+//         checkout.session.async_payment_failed, charge.refunded, invoice.paid
 //
-// Each Payment Link should carry metadata `package` = licence | sprint | integration | cloud.
+// Each Payment Link should carry metadata `package` = licence | sprint | integration | cloud,
+// also set on subscription_data.metadata so subscription renewals can be labelled.
 
 import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
 
@@ -17,7 +18,7 @@ const SIGNATURE_TOLERANCE_SECONDS = 300;
 
 const PACKAGES: Record<string, { description: string; kind: string }> = {
   licence: { description: 'Platform Licences & Digital Tooling', kind: 'licence' },
-  sprint: { description: 'Full-Stack Development Sprint', kind: 'deposit' },
+  sprint: { description: 'Full-Stack Development Sprint', kind: 'invoice' },
   integration: { description: 'Technical Systems & API Integration', kind: 'invoice' },
   cloud: { description: 'Cloud Infrastructure & Data Hosting', kind: 'subscription' },
 };
@@ -120,6 +121,35 @@ async function recordCheckoutSession(session: any, paid: boolean) {
   if (error && error.code !== '23505') throw error;
 }
 
+// The first subscription payment arrives via checkout.session.completed; this records the renewals.
+// deno-lint-ignore no-explicit-any
+async function recordSubscriptionRenewal(invoice: any) {
+  if (invoice.billing_reason !== 'subscription_cycle' || (invoice.currency ?? 'gbp').toLowerCase() !== 'gbp') return;
+
+  const pkg = PACKAGES[invoice.parent?.subscription_details?.metadata?.package ?? invoice.subscription_details?.metadata?.package ?? ''];
+  const paidAt: number = invoice.status_transitions?.paid_at ?? invoice.created;
+  const tax = (invoice.total_taxes ?? []).reduce((sum: number, t: { amount: number }) => sum + t.amount, 0) / 100 || (invoice.tax ?? 0) / 100;
+  const total = (invoice.amount_paid ?? 0) / 100;
+  if (total <= 0) return;
+
+  const clientId = await resolveClient(invoice.customer_email ?? null, invoice.customer_name ?? null);
+  const { error } = await supabase.from('payments').insert({
+    invoice_number: randomInvoiceNumber(),
+    client_id: clientId,
+    description: `${pkg?.description ?? 'Subscription'}: renewal`,
+    kind: 'subscription',
+    method: 'stripe',
+    amount_gbp: Math.max(total - tax, 0.01),
+    vat_gbp: tax,
+    status: 'paid',
+    issued_on: isoDate(invoice.created),
+    paid_on: isoDate(paidAt),
+    stripe_payment_id: invoice.id,
+    notes: `Stripe invoice ${invoice.number ?? invoice.id}`,
+  });
+  if (error && error.code !== '23505') throw error;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
@@ -151,6 +181,9 @@ Deno.serve(async (req) => {
         if (object.refunded && object.payment_intent) {
           await supabase.from('payments').update({ status: 'refunded' }).eq('stripe_payment_id', object.payment_intent);
         }
+        break;
+      case 'invoice.paid':
+        await recordSubscriptionRenewal(object);
         break;
       default:
         break; // Acknowledge events we don't handle so Stripe doesn't retry them.
