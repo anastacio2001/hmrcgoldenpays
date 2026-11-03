@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase, Campaign, CampaignEnrollment, CampaignStep, Lead, LeadSearch, Suppression } from '../../lib/supabase';
 import { VARIABLES, displayCompanyName, mailtoLink, renderEmail, templateVars } from '../../lib/outreach';
 import { Badge, Card, Empty, ErrorBox, PageTitle, Spinner, Stat, btn, btnDanger, btnGhost, formatDate, inputClass, labelClass } from './ui';
+import CallTasks from './outreach/CallTasks';
+import Letters from './outreach/Letters';
 
-type Tab = 'today' | 'sequence' | 'enrolled' | 'optouts';
+type Tab = 'today' | 'calls' | 'letters' | 'sequence' | 'enrolled' | 'optouts';
 type DueItem = CampaignEnrollment & { leads: Lead };
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -30,6 +32,7 @@ const Outreach: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [printMode, setPrintMode] = useState(false);
 
   const load = useCallback(async () => {
     const { data: camps, error: campError } = await supabase!.from('campaigns').select('*').order('created_at').limit(1);
@@ -47,7 +50,7 @@ const Outreach: React.FC = () => {
       supabase!.from('suppressions').select('*').order('created_at', { ascending: false }),
       supabase!.from('outreach_messages').select('*', { count: 'exact', head: true }).gte('sent_at', start),
       supabase!.from('campaign_enrollments').select('status, leads(status)').eq('campaign_id', c.id),
-      supabase!.from('leads').select('*', { count: 'exact', head: true }).not('email', 'is', null).in('status', ['new', 'qualified']),
+      supabase!.from('leads').select('*', { count: 'exact', head: true }).or('email.not.is.null,contact_email.not.is.null').in('status', ['new', 'qualified']),
     ]);
     if (st.error || se.error || du.error || en.error || su.error) {
       setError('Could not load outreach data.');
@@ -56,7 +59,7 @@ const Outreach: React.FC = () => {
     setCampaign(c);
     setSteps(st.data as CampaignStep[]);
     setSearches(se.data as LeadSearch[]);
-    setDue((du.data as DueItem[]).filter((d) => d.leads?.email));
+    setDue((du.data as DueItem[]).filter((d) => d.leads?.contact_email || d.leads?.email));
     setEnrolled(en.data as DueItem[]);
     setSuppressions(su.data as Suppression[]);
     setSentToday(sent.count ?? 0);
@@ -83,13 +86,14 @@ const Outreach: React.FC = () => {
 
   const markSent = async (item: DueItem) => {
     const email = renderFor(item);
-    if (!email || !item.leads.email) return;
+    const to = item.leads.contact_email ?? item.leads.email;
+    if (!email || !to) return;
     setBusy(item.id);
     const { error: msgError } = await supabase!.from('outreach_messages').insert({
       enrollment_id: item.id,
       lead_id: item.lead_id,
       step_number: item.current_step,
-      to_email: item.leads.email,
+      to_email: to,
       subject: email.subject,
       body: email.body,
       channel: 'manual',
@@ -138,7 +142,7 @@ const Outreach: React.FC = () => {
     setMessage(null);
     const { data: already } = await supabase!.from('campaign_enrollments').select('lead_id').eq('campaign_id', campaign.id);
     const skip = new Set((already ?? []).map((e) => e.lead_id));
-    let q = supabase!.from('leads').select('id').not('email', 'is', null).in('status', ['new', 'qualified']).order('created_at').limit(1000);
+    let q = supabase!.from('leads').select('id').or('email.not.is.null,contact_email.not.is.null').in('status', ['new', 'qualified']).order('created_at').limit(1000);
     if (enrollSearch !== 'all') q = q.eq('search_id', enrollSearch);
     const { data: candidates, error } = await q;
     if (error) {
@@ -188,6 +192,7 @@ const Outreach: React.FC = () => {
 
   return (
     <div>
+      <div className={printMode ? 'print:hidden' : ''}>
       <PageTitle
         title="Outreach"
         subtitle={`${campaign!.name} · ${campaign!.send_mode === 'manual' ? 'manual sending from your mailbox' : 'automatic sending via Resend'}`}
@@ -204,10 +209,14 @@ const Outreach: React.FC = () => {
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {([['today', `Today (${queue.length})`], ['sequence', 'Sequence'], ['enrolled', `Enrolled (${enrolled.length})`], ['optouts', `Opt-outs (${suppressions.length})`]] as [Tab, string][]).map(([t, label]) => (
+        {([['today', `Email · today (${queue.length})`], ['calls', 'Calls & LinkedIn'], ['letters', 'Letters'], ['sequence', 'Email sequence'], ['enrolled', `Enrolled (${enrolled.length})`], ['optouts', `Opt-outs (${suppressions.length})`]] as [Tab, string][]).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} className={`rounded-full px-4 py-1.5 text-sm font-semibold ${tab === t ? 'bg-obsidian text-white' : 'bg-white text-slate-600 hover:bg-mist'}`}>{label}</button>
         ))}
       </div>
+      </div>
+
+      {tab === 'calls' && <CallTasks searches={searchById} />}
+      {tab === 'letters' && <Letters searches={searches} onPrintMode={setPrintMode} />}
 
       {tab === 'today' && (
         <>
@@ -245,8 +254,8 @@ const Outreach: React.FC = () => {
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-steel bg-mist px-5 py-3 text-sm">
                       <div>
                         <span className="font-semibold text-obsidian">{displayCompanyName(item.leads.company_name)}</span>
-                        <span className="ml-2 text-slate-500">{item.leads.email}</span>
-                        {item.leads.email_confidence && <span className="ml-2"><Badge value={item.leads.email_confidence} /></span>}
+                        <span className="ml-2 text-slate-500">{item.leads.contact_email ?? item.leads.email}</span>
+                        {item.leads.contact_email ? <span className="ml-2"><Badge value="director" /></span> : item.leads.email_confidence && <span className="ml-2"><Badge value={item.leads.email_confidence} /></span>}
                       </div>
                       <span className="font-mono text-[11px] text-slate-500">Step {item.current_step}/{steps.length}{search?.segment ? ` · ${search.segment}` : ''}{item.next_due_on < today() ? ` · due ${formatDate(item.next_due_on)}` : ''}</span>
                     </div>
@@ -255,7 +264,7 @@ const Outreach: React.FC = () => {
                       <pre className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-700">{email.body}</pre>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 border-t border-steel px-5 py-3">
-                      <a href={mailtoLink(item.leads.email!, email.subject, email.body)} className={btn}>Open in Mail</a>
+                      <a href={mailtoLink((item.leads.contact_email ?? item.leads.email)!, email.subject, email.body)} className={btn}>Open in Mail</a>
                       <button onClick={() => copy(`${item.id}-s`, email.subject)} className={btnGhost}>{copied === `${item.id}-s` ? 'Copied ✓' : 'Copy subject'}</button>
                       <button onClick={() => copy(`${item.id}-b`, email.body)} className={btnGhost}>{copied === `${item.id}-b` ? 'Copied ✓' : 'Copy body'}</button>
                       <button onClick={() => markSent(item)} disabled={busy === item.id} className="rounded-md bg-obsidian px-4 py-2 text-sm font-semibold text-white hover:bg-obsidian-800 disabled:opacity-50">{busy === item.id ? 'Saving…' : 'Mark sent ✓'}</button>
@@ -335,7 +344,7 @@ const Outreach: React.FC = () => {
                 {enrolled.map((e) => (
                   <tr key={e.id}>
                     <td className="px-5 py-3 font-medium text-obsidian">{displayCompanyName(e.leads.company_name)}</td>
-                    <td className="px-5 py-3 text-slate-600">{e.leads.email ?? '—'}</td>
+                    <td className="px-5 py-3 text-slate-600">{e.leads.contact_email ?? e.leads.email ?? '—'}</td>
                     <td className="px-5 py-3 text-slate-600">{e.status === 'completed' ? `${steps.length}/${steps.length}` : `${e.current_step}/${steps.length}`}</td>
                     <td className="px-5 py-3 text-slate-500">{e.status === 'active' ? formatDate(e.next_due_on) : '—'}</td>
                     <td className="px-5 py-3"><Badge value={e.status === 'stopped' ? (e.stopped_reason ?? 'stopped') : e.status} /></td>

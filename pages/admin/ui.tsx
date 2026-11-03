@@ -66,6 +66,7 @@ const badgeColors: Record<string, string> = {
   lost: 'bg-slate-200 text-slate-700',
   excluded: 'bg-red-100 text-red-800',
   high: 'bg-emerald-100 text-emerald-800',
+  director: 'bg-emerald-100 text-emerald-800',
   medium: 'bg-amber-100 text-amber-800',
   manual: 'bg-sky-100 text-sky-800',
   unsubscribed: 'bg-red-100 text-red-800',

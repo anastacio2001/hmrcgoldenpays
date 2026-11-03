@@ -151,6 +151,12 @@ export interface Lead {
   notes: string | null;
   search_id: string | null;
   email_confidence: 'high' | 'medium' | 'manual' | null;
+  google_maps_url: string | null;
+  places_checked_at: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_email_score: number | null;
+  hunter_checked_at: string | null;
   email_source_url: string | null;
   enrichment_checked_at: string | null;
   last_contacted_at: string | null;
@@ -227,5 +233,19 @@ export interface Suppression {
   email: string | null;
   company_number: string | null;
   reason: 'unsubscribed' | 'excluded' | 'bounced' | 'complaint' | 'manual';
+  created_at: string;
+}
+
+export type ActivityChannel = 'email' | 'call' | 'linkedin' | 'letter' | 'note';
+export type ActivityOutcome =
+  | 'sent' | 'no-answer' | 'voicemail' | 'interested' | 'not-interested' | 'do-not-contact'
+  | 'connected' | 'messaged' | 'printed' | 'posted' | 'note';
+
+export interface LeadActivity {
+  id: string;
+  lead_id: string;
+  channel: ActivityChannel;
+  outcome: ActivityOutcome | null;
+  notes: string | null;
   created_at: string;
 }

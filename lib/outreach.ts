@@ -26,7 +26,7 @@ export const signature = (fromName: string, token: string) =>
   ].join('\n');
 
 export function templateVars(lead: Lead, search: LeadSearch | undefined, fromName: string, token: string) {
-  const director = lead.directors[0];
+  const director = lead.contact_name ?? lead.directors[0];
   return {
     first_name: director ? director.split(' ')[0] : 'there',
     company: displayCompanyName(lead.company_name),

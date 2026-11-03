@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { supabase, Lead, LeadRun, LeadSearch, LeadStatus } from '../../lib/supabase';
+import { supabase, Lead, LeadActivity, LeadRun, LeadSearch, LeadStatus } from '../../lib/supabase';
 import { OFFERINGS } from '../../data/site';
 import { Badge, Card, Empty, ErrorBox, Modal, PageTitle, Spinner, Stat, btn, btnGhost, formatDate, inputClass, labelClass } from './ui';
 
@@ -49,6 +49,7 @@ const Leads: React.FC = () => {
   const [withEmail, setWithEmail] = useState(0);
   const [pendingEnrich, setPendingEnrich] = useState(0);
   const [selected, setSelected] = useState<Lead | null>(null);
+  const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [leadForm, setLeadForm] = useState({ website: '', email: '', phone: '', status: 'new' as LeadStatus, notes: '' });
   const [editingSearch, setEditingSearch] = useState<LeadSearch | 'new' | null>(null);
   const [searchForm, setSearchForm] = useState(emptySearch);
@@ -95,6 +96,9 @@ const Leads: React.FC = () => {
 
   const openLead = (lead: Lead) => {
     setSelected(lead);
+    setActivities([]);
+    supabase!.from('lead_activities').select('*').eq('lead_id', lead.id).order('created_at', { ascending: false }).limit(20)
+      .then(({ data }) => setActivities((data ?? []) as LeadActivity[]));
     setLeadForm({ website: lead.website ?? '', email: lead.email ?? '', phone: lead.phone ?? '', status: lead.status, notes: lead.notes ?? '' });
   };
 
@@ -330,7 +334,9 @@ const Leads: React.FC = () => {
                         {searchById(lead.search_id)?.segment && <span className="mt-1 inline-block rounded bg-mist px-1.5 py-0.5 text-[10px] text-slate-600">{searchById(lead.search_id)!.segment}</span>}
                       </td>
                       <td className="px-5 py-3 text-xs">
-                        {lead.email ? <span className="text-slate-700">{lead.email} {lead.email_confidence && <Badge value={lead.email_confidence} />}</span> : <span className="text-slate-400">{lead.enrichment_checked_at ? 'Not found' : 'Pending'}</span>}
+                        {lead.contact_email && <span className="block text-slate-700">{lead.contact_email} <Badge value="director" /></span>}
+                        {lead.email ? <span className="block text-slate-700">{lead.email} {lead.email_confidence && <Badge value={lead.email_confidence} />}</span> : !lead.contact_email && <span className="text-slate-400">{lead.enrichment_checked_at ? 'Not found' : 'Pending'}</span>}
+                        {lead.phone && <span className="block font-mono text-slate-600">{lead.phone}</span>}
                         {lead.website && <a href={lead.website} target="_blank" rel="noopener noreferrer" className="block text-accent-dark hover:underline">{lead.website.replace(/^https?:\/\/(www\.)?/, '')}</a>}
                       </td>
                       <td className="px-5 py-3 text-slate-600">{lead.locality ?? '—'}<span className="block text-xs text-slate-400">{lead.postcode}</span></td>
@@ -436,7 +442,27 @@ const Leads: React.FC = () => {
               <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Registered office</dt><dd>{selected.address ?? '—'}</dd></div>
               <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Active directors</dt><dd>{selected.directors.join(', ') || '—'}</dd></div>
               <div className="sm:col-span-2"><dt className="text-xs text-slate-500">SIC codes</dt><dd className="font-mono">{selected.sic_codes.join(', ')}</dd></div>
+              {selected.contact_email && (
+                <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Director email (Hunter, score {selected.contact_email_score})</dt><dd>{selected.contact_name}: <a href={`mailto:${selected.contact_email}`} className="text-accent-dark hover:underline">{selected.contact_email}</a></dd></div>
+              )}
+              {selected.google_maps_url && (
+                <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Google profile</dt><dd><a href={selected.google_maps_url} target="_blank" rel="noopener noreferrer" className="text-accent-dark hover:underline">Open in Google Maps ↗</a></dd></div>
+              )}
             </dl>
+            {activities.length > 0 && (
+              <div className="rounded-md border border-steel p-3 text-xs">
+                <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-slate-500">Activity</p>
+                <ul className="space-y-1">
+                  {activities.map((a) => (
+                    <li key={a.id} className="flex gap-2">
+                      <span className="w-24 shrink-0 text-slate-400">{new Date(a.created_at).toLocaleDateString('en-GB')}</span>
+                      <span className="w-16 shrink-0 font-medium text-obsidian">{a.channel}</span>
+                      <span className="text-slate-600">{a.outcome}{a.notes ? ` · ${a.notes}` : ''}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {(() => {
               const origin = searchById(selected.search_id);
               if (!origin?.pain_point && !origin?.pitch) return null;

@@ -20,13 +20,15 @@ const labelClass = 'mb-2 block text-xs font-semibold uppercase tracking-wider te
 const Contact: React.FC = () => {
   const [searchParams] = useSearchParams();
   const preselected = OFFERINGS.find((o) => o.id === searchParams.get('package'))?.title ?? '';
+  // Letters carry a reference (e.g. L-12345678) so responses can be traced.
+  const ref = searchParams.get('ref')?.replace(/[^A-Za-z0-9-]/g, '').slice(0, 20) ?? '';
 
   const [formData, setFormData] = useState({
     fullName: '',
     company: '',
     email: '',
     inquiry: preselected,
-    message: '',
+    message: ref ? `Reference ${ref}: I'd like the free 20-minute automation check.\n\n` : '',
     consent: false,
   });
   const [loading, setLoading] = useState(false);
