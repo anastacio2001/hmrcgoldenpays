@@ -4,7 +4,7 @@
 //      (fallback without a key: guess the domain from the company name)
 //   2. Business email published on that website, on the company's own domain
 //   3. Hunter (HUNTER_API_KEY): the named director's work email, verified
-// Paid lookups have daily caps: GOOGLE_DAILY_LIMIT (default 300), HUNTER_DAILY_LIMIT (default 10).
+// Paid lookups have daily caps: GOOGLE_DAILY_LIMIT (default 30, ~900/month, inside Google's 1,000 free monthly requests), HUNTER_DAILY_LIMIT (default 10).
 //
 // Callers: pg_cron (x-cron-secret = CRON_SECRET) or a signed-in admin.
 
@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
 
   const started = Date.now();
   const budget = {
-    places: GOOGLE_KEY ? Math.max(Number(Deno.env.get('GOOGLE_DAILY_LIMIT') ?? 300) - (await usedToday('places_checked_at')), 0) : 0,
+    places: GOOGLE_KEY ? Math.max(Number(Deno.env.get('GOOGLE_DAILY_LIMIT') ?? 30) - (await usedToday('places_checked_at')), 0) : 0,
     hunter: HUNTER_KEY ? Math.max(Number(Deno.env.get('HUNTER_DAILY_LIMIT') ?? 10) - (await usedToday('hunter_checked_at')), 0) : 0,
   };
 
