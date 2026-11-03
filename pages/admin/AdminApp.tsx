@@ -12,6 +12,10 @@ const Projects = lazy(() => import('./Projects'));
 const Payments = lazy(() => import('./Payments'));
 const Deliverables = lazy(() => import('./Deliverables'));
 const Settings = lazy(() => import('./Settings'));
+const Finances = lazy(() => import('./internal/Finances'));
+const Documents = lazy(() => import('./internal/Documents'));
+const Compliance = lazy(() => import('./internal/Compliance'));
+const ComplianceReport = lazy(() => import('./internal/ComplianceReport'));
 
 // Admin area: mounted under /admin/* and loaded only when visited.
 const AdminApp: React.FC = () => (
@@ -29,6 +33,10 @@ const AdminApp: React.FC = () => (
               <Route path="projects" element={<Projects />} />
               <Route path="payments" element={<Payments />} />
               <Route path="deliverables" element={<Deliverables />} />
+              <Route path="finances" element={<Finances />} />
+              <Route path="documents" element={<Documents />} />
+              <Route path="compliance" element={<Compliance />} />
+              <Route path="compliance/report" element={<ComplianceReport />} />
               <Route path="settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Routes>

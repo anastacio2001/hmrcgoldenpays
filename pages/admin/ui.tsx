@@ -50,6 +50,13 @@ const badgeColors: Record<string, string> = {
   overdue: 'bg-red-100 text-red-800',
   refunded: 'bg-violet-100 text-violet-800',
   cancelled: 'bg-slate-200 text-slate-700',
+  contract: 'bg-sky-100 text-sky-800',
+  invoice: 'bg-emerald-100 text-emerald-800',
+  receipt: 'bg-amber-100 text-amber-800',
+  certificate: 'bg-violet-100 text-violet-800',
+  company: 'bg-slate-200 text-slate-700',
+  tax: 'bg-red-100 text-red-800',
+  bank: 'bg-cyan-100 text-cyan-800',
   public: 'bg-emerald-100 text-emerald-800',
   private: 'bg-slate-200 text-slate-700',
 };

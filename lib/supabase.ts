@@ -84,3 +84,49 @@ export interface Payment {
   notes: string | null;
   created_at: string;
 }
+
+export type DocumentCategory = 'contract' | 'invoice' | 'receipt' | 'certificate' | 'company' | 'tax' | 'bank' | 'other';
+
+export interface CompanyDocument {
+  id: string;
+  title: string;
+  category: DocumentCategory;
+  storage_path: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  document_date: string | null;
+  client_id: string | null;
+  project_id: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export type ExpenseCategory =
+  | 'software' | 'hosting' | 'equipment' | 'professional-fees' | 'office'
+  | 'travel' | 'marketing' | 'bank-fees' | 'insurance' | 'training' | 'other';
+
+export interface Expense {
+  id: string;
+  spent_on: string;
+  supplier: string;
+  description: string | null;
+  category: ExpenseCategory;
+  amount_gbp: number;
+  method: 'card' | 'bank-transfer' | 'direct-debit' | 'cash' | 'other';
+  receipt_document_id: string | null;
+  project_id: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface ComplianceDeadline {
+  id: string;
+  title: string;
+  authority: 'companies-house' | 'hmrc' | 'ico' | 'bank' | 'other';
+  due_on: string;
+  status: 'pending' | 'done';
+  completed_on: string | null;
+  notes: string | null;
+  created_at: string;
+}
