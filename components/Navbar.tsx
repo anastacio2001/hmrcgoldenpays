@@ -6,6 +6,7 @@ const navLinks = [
   { name: 'Solutions', path: '/solutions' },
   { name: 'Productized Services', path: '/services' },
   { name: 'SaaS Catalog', path: '/saas' },
+  { name: 'Deliverables Registry', path: '/registry' },
   { name: 'Verification Portal', path: '/verify' },
   { name: 'Company', path: '/company' },
   { name: 'Contact', path: '/contact' },

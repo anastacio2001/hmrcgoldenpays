@@ -14,11 +14,12 @@ const columns = [
     ],
   },
   {
-    heading: 'Legal',
+    heading: 'Legal & Audit',
     links: [
       { name: 'Terms of Service', path: '/legal/terms' },
       { name: 'Privacy Policy (GDPR)', path: '/legal/privacy' },
       { name: 'Refund & Cancellation', path: '/legal/refunds' },
+      { name: 'Deliverables Registry', path: '/registry' },
       { name: 'Verification Portal', path: '/verify' },
     ],
   },

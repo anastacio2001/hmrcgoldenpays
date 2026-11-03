@@ -13,6 +13,7 @@ const Solutions = lazy(() => import('./pages/Solutions'));
 const Services = lazy(() => import('./pages/Services'));
 const SaasCatalog = lazy(() => import('./pages/SaasCatalog'));
 const Verify = lazy(() => import('./pages/Verify'));
+const DeliverablesRegistry = lazy(() => import('./pages/DeliverablesRegistry'));
 const Company = lazy(() => import('./pages/Company'));
 const Contact = lazy(() => import('./pages/Contact'));
 const ThankYou = lazy(() => import('./pages/ThankYou'));
@@ -75,7 +76,11 @@ const App: React.FC = () => {
                   <Route path="/solutions" element={<Solutions />} />
                   <Route path="/services" element={<Services />} />
                   <Route path="/saas" element={<SaasCatalog />} />
+                  <Route path="/registry" element={<DeliverablesRegistry />} />
+                  <Route path="/deliverables" element={<DeliverablesRegistry />} />
                   <Route path="/verify" element={<Verify />} />
+                  <Route path="/verify/:ref" element={<Verify />} />
+                  <Route path="/deliverable/:ref" element={<Verify />} />
                   <Route path="/company" element={<Company />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/thank-you" element={<ThankYou />} />

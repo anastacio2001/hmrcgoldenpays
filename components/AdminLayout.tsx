@@ -20,11 +20,12 @@ const menuGroups = [
     ],
   },
   {
-    heading: 'Internal',
+    heading: 'Internal & Compliance',
     items: [
+      { name: 'Dossier Generator', path: '/admin/generator' },
+      { name: 'Compliance', path: '/admin/compliance' },
       { name: 'Finances', path: '/admin/finances' },
       { name: 'Documents', path: '/admin/documents' },
-      { name: 'Compliance', path: '/admin/compliance' },
     ],
   },
   { heading: null, items: [{ name: 'Settings', path: '/admin/settings' }] },

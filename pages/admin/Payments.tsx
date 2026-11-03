@@ -172,7 +172,14 @@ const Payments: React.FC = () => {
       <PageTitle
         title="Payments"
         subtitle="Invoices, deposits, subscriptions and licence sales. Amounts in GBP."
-        action={<button onClick={() => openForm('new')} className={btn}>+ Record payment</button>}
+        action={
+          <div className="flex items-center gap-2">
+            <Link to="/admin/generator" className={btnGhost}>
+              ⚡ Compliance Dossier Generator
+            </Link>
+            <button onClick={() => openForm('new')} className={btn}>+ Record payment</button>
+          </div>
+        }
       />
       {error && <ErrorBox message={error} />}
 
@@ -225,8 +232,15 @@ const Payments: React.FC = () => {
                   <td className="px-5 py-3 text-slate-500">{p.status === 'paid' ? `Paid ${formatDate(p.paid_on)}` : formatDate(p.due_on)}</td>
                   <td className="px-5 py-3"><Badge value={displayStatus(p)} /></td>
                   <td className="whitespace-nowrap px-5 py-3 text-right">
+                    <Link
+                      to={`/admin/generator?ref=${encodeURIComponent(p.invoice_number)}&amount=${total(p)}&desc=${encodeURIComponent(p.description)}&client=${encodeURIComponent(clientName(p.client_id))}&method=${p.method}&date=${p.paid_on || p.issued_on || ''}`}
+                      className="mr-3 text-xs font-semibold text-emerald-700 hover:underline"
+                      title="Generate official 5-piece Audit Dossier for this payment"
+                    >
+                      Audit Dossier →
+                    </Link>
                     {p.status === 'pending' && (
-                      <button onClick={() => markPaid(p)} className="mr-4 text-emerald-700 hover:underline">Mark paid</button>
+                      <button onClick={() => markPaid(p)} className="mr-3 text-slate-700 hover:underline">Mark paid</button>
                     )}
                     <button onClick={() => openForm(p)} className="text-accent-dark hover:underline">Edit</button>
                   </td>

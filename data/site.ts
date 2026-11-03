@@ -10,6 +10,15 @@ export const COMPANY = {
   director: 'Ladislau S. Anastácio',
   directorTitle: 'Founder & Managing Director',
   companiesHouseUrl: 'https://find-and-update.company-information.service.gov.uk/company/16227513',
+  bank: {
+    accountName: 'GOLDENPAYS LTD',
+    accountNumber: '01164345',
+    sortCode: '04-19-19',
+    sortCodeRaw: '041919',
+    iban: 'GB71TAPD04191901164345',
+    swiftBic: 'CLRBGB22',
+    currency: 'GBP',
+  },
 };
 
 export const SIC_CODES = [

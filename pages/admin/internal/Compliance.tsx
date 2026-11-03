@@ -102,13 +102,30 @@ const Compliance: React.FC = () => {
       />
       {error && <ErrorBox message={error} />}
 
-      <Card className="mb-8 flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="font-semibold text-obsidian">Company verification pack</h2>
-          <p className="mt-1 text-sm text-slate-500">Company details, registered activities, verified deliveries and trading summary, ready to save as PDF for banks, Stripe or HMRC.</p>
-        </div>
-        <Link to="/admin/compliance/report" className={`${btn} shrink-0`}>Generate pack →</Link>
-      </Card>
+      <div className="mb-8 grid gap-4 sm:grid-cols-2">
+        <Card className="flex flex-col justify-between gap-4 p-6 border-l-4 border-l-accent">
+          <div>
+            <div className="inline-block bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2">
+              New · Operations Engine
+            </div>
+            <h2 className="font-semibold text-obsidian">Ops & Compliance Generator</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Generate 5-piece Audit Dossiers (UK Invoice, SOW Contract, RFC-822 Emails, Completion Certificate & Public Verification) for incoming Stripe or Bank payments.
+            </p>
+          </div>
+          <Link to="/admin/generator" className={`${btn} self-start`}>Open Generator →</Link>
+        </Card>
+
+        <Card className="flex flex-col justify-between gap-4 p-6">
+          <div>
+            <h2 className="font-semibold text-obsidian">Company verification pack</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Company statutory details, registered activities, verified deliveries and trading summary for banks, Stripe or HMRC.
+            </p>
+          </div>
+          <Link to="/admin/compliance/report" className={`${btnGhost} self-start`}>Generate pack →</Link>
+        </Card>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
