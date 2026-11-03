@@ -164,6 +164,12 @@ export interface LeadSearch {
   incorporated_to: string | null;
   max_results: number;
   is_active: boolean;
+  segment: string | null;
+  pain_point: string | null;
+  pitch: string | null;
+  offering: 'licence' | 'sprint' | 'integration' | 'cloud' | null;
+  priority: 1 | 2 | 3;
+  incorporated_within_days: number | null;
   last_run_at: string | null;
   last_found: number | null;
   last_inserted: number | null;

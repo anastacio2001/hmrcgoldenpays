@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase, Lead, LeadRun, LeadSearch, LeadStatus } from '../../lib/supabase';
+import { OFFERINGS } from '../../data/site';
 import { Badge, Card, Empty, ErrorBox, Modal, PageTitle, Spinner, Stat, btn, btnGhost, formatDate, inputClass, labelClass } from './ui';
 
 const STATUSES: LeadStatus[] = ['new', 'qualified', 'contacted', 'replied', 'meeting', 'proposal', 'won', 'lost', 'excluded'];
@@ -19,7 +20,14 @@ const SIC_PRESETS = [
   { code: '85590', label: 'Training & education' },
 ];
 
-const emptySearch = { name: '', sic_codes: '', location: '', company_type: 'ltd' as LeadSearch['company_type'], incorporated_from: '', incorporated_to: '', max_results: '200', is_active: true };
+const emptySearch = {
+  name: '', segment: '', sic_codes: '', location: '', company_type: 'ltd' as LeadSearch['company_type'],
+  incorporated_from: '', incorporated_to: '', incorporated_within_days: '', max_results: '100', is_active: true,
+  priority: '2', offering: '', pain_point: '', pitch: '',
+};
+
+const PRIORITY_LABELS: Record<number, string> = { 1: 'Priority 1 · fastest wins', 2: 'Priority 2 · strong fit', 3: 'Priority 3 · partners & recurring' };
+const offeringTitle = (id: string | null) => OFFERINGS.find((o) => o.id === id)?.title ?? null;
 
 const csvCell = (value: unknown) => {
   const s = value == null ? '' : Array.isArray(value) ? value.join('; ') : String(value);
@@ -34,7 +42,7 @@ const Leads: React.FC = () => {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [searches, setSearches] = useState<LeadSearch[]>([]);
   const [runs, setRuns] = useState<LeadRun[]>([]);
-  const [filterStatus, setFilterStatus] = useState('new');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [filterSearch, setFilterSearch] = useState('all');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Lead | null>(null);
@@ -58,7 +66,7 @@ const Leads: React.FC = () => {
 
   const loadMeta = async () => {
     const [s, r, ...statusCounts] = await Promise.all([
-      supabase!.from('lead_searches').select('*').order('created_at'),
+      supabase!.from('lead_searches').select('*').order('priority').order('name'),
       supabase!.from('lead_runs').select('*').order('started_at', { ascending: false }).limit(10),
       ...STATUSES.map((st) => supabase!.from('leads').select('*', { count: 'exact', head: true }).eq('status', st)),
     ]);
@@ -128,17 +136,23 @@ const Leads: React.FC = () => {
     setEditingSearch(s);
     setSearchForm(s === 'new' ? emptySearch : {
       name: s.name,
+      segment: s.segment ?? '',
       sic_codes: s.sic_codes.join(', '),
       location: s.location ?? '',
       company_type: s.company_type,
       incorporated_from: s.incorporated_from ?? '',
       incorporated_to: s.incorporated_to ?? '',
+      incorporated_within_days: s.incorporated_within_days?.toString() ?? '',
       max_results: String(s.max_results),
       is_active: s.is_active,
+      priority: String(s.priority),
+      offering: s.offering ?? '',
+      pain_point: s.pain_point ?? '',
+      pitch: s.pitch ?? '',
     });
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     setSearchForm({ ...searchForm, [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value });
   };
@@ -163,8 +177,14 @@ const Leads: React.FC = () => {
       company_type: searchForm.company_type,
       incorporated_from: searchForm.incorporated_from || null,
       incorporated_to: searchForm.incorporated_to || null,
+      incorporated_within_days: searchForm.incorporated_within_days ? Number(searchForm.incorporated_within_days) : null,
       max_results: Number(searchForm.max_results),
       is_active: searchForm.is_active,
+      segment: searchForm.segment || null,
+      priority: Number(searchForm.priority),
+      offering: searchForm.offering || null,
+      pain_point: searchForm.pain_point || null,
+      pitch: searchForm.pitch || null,
     };
     const { error } = editingSearch === 'new'
       ? await supabase!.from('lead_searches').insert(payload)
@@ -188,6 +208,12 @@ const Leads: React.FC = () => {
     }
   };
 
+  const toggleActive = async (s: LeadSearch) => {
+    const { error } = await supabase!.from('lead_searches').update({ is_active: !s.is_active }).eq('id', s.id);
+    if (error) setError('Could not update the search.');
+    else setSearches((list) => list.map((x) => (x.id === s.id ? { ...x, is_active: !s.is_active } : x)));
+  };
+
   const runNow = async (searchId?: string) => {
     setRunning(searchId ?? 'all');
     setMessage(null);
@@ -198,7 +224,7 @@ const Leads: React.FC = () => {
       const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
       setError(detail?.error ?? 'The Companies House run failed.');
     } else {
-      setMessage(`Run complete: ${data.found} companies found, ${data.inserted} new leads added.${data.errors?.length ? ` ${data.errors.length} search(es) failed.` : ''}`);
+      setMessage(`Run complete: ${data.searches} searches, ${data.found} companies found, ${data.inserted} new leads, ${data.directors} director lookups.${data.errors?.length ? ` ${data.errors.length} error(s): see Recent runs.` : ''}`);
     }
     loadMeta();
     loadLeads();
@@ -207,13 +233,15 @@ const Leads: React.FC = () => {
   if (!leads) return error ? <ErrorBox message={error} /> : <Spinner />;
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const activeSearches = searches.filter((s) => s.is_active).length;
+  const searchById = (id: string | null) => searches.find((s) => s.id === id);
 
   return (
     <div>
       <PageTitle
         title="Leads"
         subtitle="UK companies from the Companies House register, refreshed daily at 06:00 UTC from your saved searches."
-        action={<button onClick={() => runNow()} disabled={!!running || searches.length === 0} className={btn}>{running === 'all' ? 'Running…' : 'Run all searches now'}</button>}
+        action={<button onClick={() => runNow()} disabled={!!running || activeSearches === 0} className={btn}>{running === 'all' ? 'Running… (up to 2 min)' : `Run ${activeSearches} active searches now`}</button>}
       />
       {error && <ErrorBox message={error} />}
       {message && <div className="mb-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{message}</div>}
@@ -229,7 +257,7 @@ const Leads: React.FC = () => {
       <div className="mb-4 flex gap-2">
         {(['leads', 'searches'] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} className={`rounded-full px-4 py-1.5 text-sm font-semibold capitalize ${tab === t ? 'bg-obsidian text-white' : 'bg-white text-slate-600 hover:bg-mist'}`}>
-            {t === 'searches' ? `Searches (${searches.length})` : 'Leads'}
+            {t === 'searches' ? `Search library (${activeSearches}/${searches.length} active)` : `Leads (${total})`}
           </button>
         ))}
       </div>
@@ -237,7 +265,7 @@ const Leads: React.FC = () => {
       {tab === 'leads' ? (
         <>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search company, town or postcode…" className={`${inputClass} sm:max-w-xs`} />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filter leads by company, town or postcode…" className={`${inputClass} sm:max-w-xs`} />
             <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`${inputClass} sm:w-40`}>
               <option value="all">All statuses</option>
               {STATUSES.map((s) => <option key={s} value={s}>{s} ({counts[s] ?? 0})</option>)}
@@ -251,9 +279,9 @@ const Leads: React.FC = () => {
 
           {leads.length === 0 ? (
             <Empty>
-              {searches.length === 0
-                ? 'No leads yet. Create a search in the Searches tab, then run it.'
-                : 'No leads match these filters.'}
+              {total === 0 ? (
+                <span>No leads yet. {activeSearches} searches are ready in the Search library. <button onClick={() => runNow()} disabled={!!running} className="font-semibold text-accent-dark hover:underline">{running ? 'Running…' : 'Run them now'}</button>, or wait for the daily 06:00 run.</span>
+              ) : 'No leads match these filters.'}
             </Empty>
           ) : (
             <Card className="overflow-x-auto">
@@ -273,6 +301,7 @@ const Leads: React.FC = () => {
                       <td className="px-5 py-3">
                         <button onClick={() => openLead(lead)} className="text-left font-medium text-obsidian hover:text-accent-dark hover:underline">{lead.company_name}</button>
                         <p className="font-mono text-[11px] text-slate-400">{lead.company_number} · SIC {lead.sic_codes.join(', ')}</p>
+                        {searchById(lead.search_id)?.segment && <span className="mt-1 inline-block rounded bg-mist px-1.5 py-0.5 text-[10px] text-slate-600">{searchById(lead.search_id)!.segment}</span>}
                       </td>
                       <td className="px-5 py-3 text-slate-600">{lead.locality ?? '—'}<span className="block text-xs text-slate-400">{lead.postcode}</span></td>
                       <td className="px-5 py-3 text-slate-600">{lead.directors.slice(0, 2).join(', ') || '—'}{lead.directors.length > 2 && <span className="text-xs text-slate-400"> +{lead.directors.length - 2}</span>}</td>
@@ -298,29 +327,49 @@ const Leads: React.FC = () => {
               <button onClick={() => openSearch('new')} className={btn}>+ New search</button>
             </div>
             {searches.length === 0 ? (
-              <Empty>No searches yet. Start with, for example, "Online retail · Manchester" (SIC 47910).</Empty>
+              <Empty>No searches yet.</Empty>
             ) : (
-              <Card>
-                <ul className="divide-y divide-steel">
-                  {searches.map((s) => (
-                    <li key={s.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="font-medium text-obsidian">{s.name} {!s.is_active && <Badge value="inactive" />}</p>
-                        <p className="text-xs text-slate-500">
-                          SIC {s.sic_codes.join(', ')} · {s.location || 'All UK'} · {s.company_type} · up to {s.max_results}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {s.last_run_at ? `Last run ${new Date(s.last_run_at).toLocaleString('en-GB')}: ${s.last_found} found, ${s.last_inserted} new` : 'Never run'}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 gap-3 text-sm">
-                        <button onClick={() => runNow(s.id)} disabled={!!running} className="text-emerald-700 hover:underline disabled:opacity-50">{running === s.id ? 'Running…' : 'Run now'}</button>
-                        <button onClick={() => openSearch(s)} className="text-accent-dark hover:underline">Edit</button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
+              <div className="space-y-6">
+                {[1, 2, 3].map((p) => {
+                  const group = searches.filter((s) => s.priority === p);
+                  if (group.length === 0) return null;
+                  return (
+                    <div key={p}>
+                      <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-slate-500">{PRIORITY_LABELS[p]}</p>
+                      <Card>
+                        <ul className="divide-y divide-steel">
+                          {group.map((s) => (
+                            <li key={s.id} className={`px-5 py-4 ${s.is_active ? '' : 'opacity-60'}`}>
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
+                                  <p className="font-medium text-obsidian">{s.name}</p>
+                                  <p className="text-xs text-slate-500">
+                                    SIC {s.sic_codes.join(', ')} · {s.location || 'All UK'}
+                                    {s.incorporated_within_days ? ` · formed in last ${s.incorporated_within_days} days` : ''} · up to {s.max_results}
+                                  </p>
+                                  {s.pain_point && <p className="mt-2 text-sm text-slate-700"><span className="font-semibold text-red-700">Pain:</span> {s.pain_point}</p>}
+                                  {s.pitch && <p className="mt-1 text-sm text-slate-700"><span className="font-semibold text-emerald-700">Pitch:</span> {s.pitch}</p>}
+                                  <p className="mt-2 text-xs text-slate-400">
+                                    {offeringTitle(s.offering) && <>Package: {offeringTitle(s.offering)} · </>}
+                                    {s.last_run_at ? `Last run ${new Date(s.last_run_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}: ${s.last_found} found, ${s.last_inserted} new` : 'Not run yet'}
+                                  </p>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-3 text-sm">
+                                  <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                                    <input type="checkbox" checked={s.is_active} onChange={() => toggleActive(s)} className="accent-accent" /> Daily
+                                  </label>
+                                  <button onClick={() => runNow(s.id)} disabled={!!running} className="text-emerald-700 hover:underline disabled:opacity-50">{running === s.id ? 'Running…' : 'Run'}</button>
+                                  <button onClick={() => openSearch(s)} className="text-accent-dark hover:underline">Edit</button>
+                                </div>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </Card>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
 
@@ -358,6 +407,18 @@ const Leads: React.FC = () => {
               <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Active directors</dt><dd>{selected.directors.join(', ') || '—'}</dd></div>
               <div className="sm:col-span-2"><dt className="text-xs text-slate-500">SIC codes</dt><dd className="font-mono">{selected.sic_codes.join(', ')}</dd></div>
             </dl>
+            {(() => {
+              const origin = searchById(selected.search_id);
+              if (!origin?.pain_point && !origin?.pitch) return null;
+              return (
+                <div className="rounded-md border border-accent/30 bg-accent/5 p-4 text-sm">
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-accent-dark">Sales angle · {origin.segment}</p>
+                  {origin.pain_point && <p className="mt-2 text-slate-700"><b>Likely pain:</b> {origin.pain_point}</p>}
+                  {origin.pitch && <p className="mt-1 text-slate-700"><b>Pitch:</b> {origin.pitch}</p>}
+                  {offeringTitle(origin.offering) && <p className="mt-1 text-xs text-slate-500">Lead with: {offeringTitle(origin.offering)}</p>}
+                </div>
+              );
+            })()}
             <div className="grid gap-4 sm:grid-cols-2">
               <div><label className={labelClass}>Website</label><input value={leadForm.website} onChange={(e) => setLeadForm({ ...leadForm, website: e.target.value })} placeholder="https://" className={inputClass} /></div>
               <div><label className={labelClass}>Business email</label><input type="email" value={leadForm.email} onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })} placeholder="info@…" className={inputClass} /></div>
@@ -386,7 +447,10 @@ const Leads: React.FC = () => {
       {editingSearch && (
         <Modal title={editingSearch === 'new' ? 'New search' : 'Edit search'} onClose={() => setEditingSearch(null)}>
           <form onSubmit={saveSearch} className="space-y-4">
-            <div><label className={labelClass}>Name</label><input name="name" value={searchForm.name} onChange={handleSearchChange} required placeholder="Online retail · Manchester" className={inputClass} /></div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div><label className={labelClass}>Name</label><input name="name" value={searchForm.name} onChange={handleSearchChange} required placeholder="Online retail · Manchester" className={inputClass} /></div>
+              <div><label className={labelClass}>Segment</label><input name="segment" value={searchForm.segment} onChange={handleSearchChange} placeholder="E-commerce" className={inputClass} /></div>
+            </div>
             <div>
               <label className={labelClass}>SIC codes</label>
               <input name="sic_codes" value={searchForm.sic_codes} onChange={handleSearchChange} required placeholder="47910, 69201" className={`${inputClass} font-mono`} />
@@ -418,6 +482,24 @@ const Leads: React.FC = () => {
                 <input type="checkbox" name="is_active" checked={searchForm.is_active} onChange={handleSearchChange} className="accent-accent" /> Run daily
               </label>
             </div>
+            <div><label className={labelClass}>Or: formed in the last N days (rolling)</label><input name="incorporated_within_days" type="number" min="1" max="3650" value={searchForm.incorporated_within_days} onChange={handleSearchChange} placeholder="e.g. 90" className={inputClass} /></div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={labelClass}>Priority</label>
+                <select name="priority" value={searchForm.priority} onChange={handleSearchChange} className={inputClass}>
+                  {[1, 2, 3].map((p) => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Recommended package</label>
+                <select name="offering" value={searchForm.offering} onChange={handleSearchChange} className={inputClass}>
+                  <option value="">None</option>
+                  {OFFERINGS.map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}
+                </select>
+              </div>
+            </div>
+            <div><label className={labelClass}>Pain point</label><textarea name="pain_point" rows={2} value={searchForm.pain_point} onChange={handleSearchChange} className={inputClass} /></div>
+            <div><label className={labelClass}>Pitch</label><textarea name="pitch" rows={2} value={searchForm.pitch} onChange={handleSearchChange} className={inputClass} /></div>
             <p className="text-xs text-slate-500">Only active companies are fetched. Tip: set "Incorporated from" to find newly formed companies, which are often still choosing their tools.</p>
             <div className="flex flex-wrap justify-between gap-3">
               {editingSearch !== 'new' ? <button type="button" onClick={() => deleteSearch(editingSearch)} className="text-sm text-red-600 hover:underline">Delete search</button> : <span />}

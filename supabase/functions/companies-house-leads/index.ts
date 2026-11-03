@@ -14,7 +14,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
 const CH_BASE = 'https://api.company-information.service.gov.uk';
 const PAGE_SIZE = 100;
 // Companies House allows 600 requests per 5 minutes; stay well below it per run.
-const MAX_OFFICER_LOOKUPS = 250;
+const MAX_OFFICER_LOOKUPS = 300;
+const OFFICER_CONCURRENCY = 4;
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -84,10 +85,14 @@ interface LeadSearch {
   company_type: string;
   incorporated_from: string | null;
   incorporated_to: string | null;
+  incorporated_within_days: number | null;
   max_results: number;
 }
 
-async function runSearch(search: LeadSearch, officerBudget: { left: number }) {
+const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+
+async function runSearch(search: LeadSearch) {
+  const incorporatedFrom = search.incorporated_within_days ? daysAgo(search.incorporated_within_days) : search.incorporated_from;
   // deno-lint-ignore no-explicit-any
   const companies: any[] = [];
   for (let start = 0; start < search.max_results; start += PAGE_SIZE) {
@@ -96,7 +101,7 @@ async function runSearch(search: LeadSearch, officerBudget: { left: number }) {
       location: search.location ?? undefined,
       company_status: 'active',
       company_type: search.company_type,
-      incorporated_from: search.incorporated_from ?? undefined,
+      incorporated_from: incorporatedFrom ?? undefined,
       incorporated_to: search.incorporated_to ?? undefined,
       size: Math.min(PAGE_SIZE, search.max_results - start),
       start_index: start,
@@ -115,15 +120,9 @@ async function runSearch(search: LeadSearch, officerBudget: { left: number }) {
   const known = new Set((existing ?? []).map((e) => e.company_number));
   const fresh = companies.filter((c) => !known.has(c.company_number));
 
-  const rows = [];
-  for (const c of fresh) {
+  const rows = fresh.map((c) => {
     const a = c.registered_office_address ?? {};
-    let directors: string[] = [];
-    if (officerBudget.left > 0) {
-      officerBudget.left--;
-      try { directors = await activeDirectors(c.company_number); } catch { /* keep the lead without directors */ }
-    }
-    rows.push({
+    return {
       company_number: c.company_number,
       company_name: c.company_name,
       company_type: c.company_type,
@@ -132,16 +131,43 @@ async function runSearch(search: LeadSearch, officerBudget: { left: number }) {
       address: [a.address_line_1, a.address_line_2, a.locality, a.region, a.postal_code].filter(Boolean).join(', ') || null,
       locality: a.locality ?? null,
       postcode: a.postal_code ?? null,
-      directors,
       search_id: search.id,
-    });
-  }
+    };
+  });
 
   if (rows.length > 0) {
     const { error } = await supabase.from('leads').upsert(rows, { onConflict: 'company_number', ignoreDuplicates: true });
     if (error) throw error;
   }
   return { found: companies.length, inserted: rows.length };
+}
+
+/** Fills in active directors for leads not yet checked, oldest first, within the request budget. */
+async function backfillDirectors(budget: number) {
+  const { data: pending, error } = await supabase
+    .from('leads')
+    .select('id, company_number')
+    .is('directors_checked_at', null)
+    .order('created_at')
+    .limit(budget);
+  if (error) throw error;
+
+  let done = 0;
+  const queue = [...(pending ?? [])];
+  const worker = async () => {
+    while (queue.length) {
+      const lead = queue.shift()!;
+      try {
+        const directors = await activeDirectors(lead.company_number);
+        await supabase.from('leads').update({ directors, directors_checked_at: new Date().toISOString() }).eq('id', lead.id);
+        done++;
+      } catch {
+        // Leave unchecked; the next run retries it.
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: OFFICER_CONCURRENCY }, worker));
+  return done;
 }
 
 Deno.serve(async (req) => {
@@ -162,13 +188,12 @@ Deno.serve(async (req) => {
   const { data: searches, error } = await query;
   if (error) return json({ error: error.message }, 500);
 
-  const officerBudget = { left: MAX_OFFICER_LOOKUPS };
-  const totals = { searches: 0, found: 0, inserted: 0 };
+  const totals = { searches: 0, found: 0, inserted: 0, directors: 0 };
   const errors: string[] = [];
 
   for (const search of (searches ?? []) as LeadSearch[]) {
     try {
-      const result = await runSearch(search, officerBudget);
+      const result = await runSearch(search);
       totals.searches++;
       totals.found += result.found;
       totals.inserted += result.inserted;
@@ -180,10 +205,18 @@ Deno.serve(async (req) => {
     }
   }
 
+  try {
+    totals.directors = await backfillDirectors(MAX_OFFICER_LOOKUPS);
+  } catch (err) {
+    errors.push(`directors: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
   if (run) {
     await supabase.from('lead_runs').update({
       finished_at: new Date().toISOString(),
-      ...totals,
+      searches: totals.searches,
+      found: totals.found,
+      inserted: totals.inserted,
       error: errors.length ? errors.join('; ').slice(0, 2000) : null,
     }).eq('id', run.id);
   }
