@@ -45,6 +45,9 @@ const Leads: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterSearch, setFilterSearch] = useState('all');
   const [query, setQuery] = useState('');
+  const [onlyWithEmail, setOnlyWithEmail] = useState(false);
+  const [withEmail, setWithEmail] = useState(0);
+  const [pendingEnrich, setPendingEnrich] = useState(0);
   const [selected, setSelected] = useState<Lead | null>(null);
   const [leadForm, setLeadForm] = useState({ website: '', email: '', phone: '', status: 'new' as LeadStatus, notes: '' });
   const [editingSearch, setEditingSearch] = useState<LeadSearch | 'new' | null>(null);
@@ -57,17 +60,20 @@ const Leads: React.FC = () => {
     let q = supabase!.from('leads').select('*').order('created_at', { ascending: false }).limit(PAGE_LIMIT);
     if (filterStatus !== 'all') q = q.eq('status', filterStatus);
     if (filterSearch !== 'all') q = q.eq('search_id', filterSearch);
+    if (onlyWithEmail) q = q.not('email', 'is', null);
     const term = query.trim();
     if (term) q = q.or(`company_name.ilike.%${term.replace(/[%,()]/g, '')}%,locality.ilike.%${term.replace(/[%,()]/g, '')}%,postcode.ilike.%${term.replace(/[%,()]/g, '')}%`);
     const { data, error } = await q;
     if (error) setError('Could not load leads.');
     else setLeads(data as Lead[]);
-  }, [filterStatus, filterSearch, query]);
+  }, [filterStatus, filterSearch, query, onlyWithEmail]);
 
   const loadMeta = async () => {
-    const [s, r, ...statusCounts] = await Promise.all([
+    const [s, r, we, pe, ...statusCounts] = await Promise.all([
       supabase!.from('lead_searches').select('*').order('priority').order('name'),
       supabase!.from('lead_runs').select('*').order('started_at', { ascending: false }).limit(10),
+      supabase!.from('leads').select('*', { count: 'exact', head: true }).not('email', 'is', null),
+      supabase!.from('leads').select('*', { count: 'exact', head: true }).is('enrichment_checked_at', null).is('website', null).in('status', ['new', 'qualified']),
       ...STATUSES.map((st) => supabase!.from('leads').select('*', { count: 'exact', head: true }).eq('status', st)),
     ]);
     if (s.error || r.error) {
@@ -76,6 +82,8 @@ const Leads: React.FC = () => {
     }
     setSearches(s.data as LeadSearch[]);
     setRuns(r.data as LeadRun[]);
+    setWithEmail(we.count ?? 0);
+    setPendingEnrich(pe.count ?? 0);
     setCounts(Object.fromEntries(STATUSES.map((st, i) => [st, statusCounts[i].count ?? 0])));
   };
 
@@ -96,6 +104,7 @@ const Leads: React.FC = () => {
     const payload = {
       website: leadForm.website || null,
       email: leadForm.email || null,
+      ...(leadForm.email && leadForm.email !== selected.email ? { email_confidence: 'manual' as const } : {}),
       phone: leadForm.phone || null,
       notes: leadForm.notes || null,
       status: leadForm.status,
@@ -214,6 +223,18 @@ const Leads: React.FC = () => {
     else setSearches((list) => list.map((x) => (x.id === s.id ? { ...x, is_active: !s.is_active } : x)));
   };
 
+  const enrichNow = async () => {
+    setRunning('enrich');
+    setMessage(null);
+    setError(null);
+    const { data, error } = await supabase!.functions.invoke('enrich-leads', { body: {} });
+    setRunning(null);
+    if (error) setError('The website and email search failed. It will retry automatically every 15 minutes.');
+    else setMessage(`Checked ${data.checked} leads: ${data.websites} websites and ${data.emails} business emails found. ${data.remaining} still to check (runs automatically every 15 minutes).`);
+    loadMeta();
+    loadLeads();
+  };
+
   const runNow = async (searchId?: string) => {
     setRunning(searchId ?? 'all');
     setMessage(null);
@@ -248,7 +269,7 @@ const Leads: React.FC = () => {
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat label="Total leads" value={total} />
-        <Stat label="New" value={counts.new ?? 0} />
+        <Stat label="With email" value={<span>{withEmail}<span className="ml-2 text-xs font-normal text-slate-400">{pendingEnrich} to check</span></span>} />
         <Stat label="Contacted" value={(counts.contacted ?? 0) + (counts.replied ?? 0)} />
         <Stat label="Meetings & proposals" value={(counts.meeting ?? 0) + (counts.proposal ?? 0)} />
         <Stat label="Won" value={counts.won ?? 0} />
@@ -274,7 +295,11 @@ const Leads: React.FC = () => {
               <option value="all">All searches</option>
               {searches.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            <button onClick={exportCsv} className={`${btnGhost} sm:ml-auto`}>Export CSV</button>
+            <label className="flex items-center gap-2 whitespace-nowrap text-sm text-slate-700">
+              <input type="checkbox" checked={onlyWithEmail} onChange={(e) => setOnlyWithEmail(e.target.checked)} className="accent-accent" /> With email
+            </label>
+            <button onClick={enrichNow} disabled={!!running || pendingEnrich === 0} className={`${btnGhost} sm:ml-auto`}>{running === 'enrich' ? 'Searching…' : 'Find websites & emails'}</button>
+            <button onClick={exportCsv} className={btnGhost}>Export CSV</button>
           </div>
 
           {leads.length === 0 ? (
@@ -289,6 +314,7 @@ const Leads: React.FC = () => {
                 <thead className="border-b border-steel bg-mist text-left text-xs uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="px-5 py-3">Company</th>
+                    <th className="px-5 py-3">Contact</th>
                     <th className="px-5 py-3">Location</th>
                     <th className="px-5 py-3">Directors</th>
                     <th className="px-5 py-3">Incorporated</th>
@@ -302,6 +328,10 @@ const Leads: React.FC = () => {
                         <button onClick={() => openLead(lead)} className="text-left font-medium text-obsidian hover:text-accent-dark hover:underline">{lead.company_name}</button>
                         <p className="font-mono text-[11px] text-slate-400">{lead.company_number} · SIC {lead.sic_codes.join(', ')}</p>
                         {searchById(lead.search_id)?.segment && <span className="mt-1 inline-block rounded bg-mist px-1.5 py-0.5 text-[10px] text-slate-600">{searchById(lead.search_id)!.segment}</span>}
+                      </td>
+                      <td className="px-5 py-3 text-xs">
+                        {lead.email ? <span className="text-slate-700">{lead.email} {lead.email_confidence && <Badge value={lead.email_confidence} />}</span> : <span className="text-slate-400">{lead.enrichment_checked_at ? 'Not found' : 'Pending'}</span>}
+                        {lead.website && <a href={lead.website} target="_blank" rel="noopener noreferrer" className="block text-accent-dark hover:underline">{lead.website.replace(/^https?:\/\/(www\.)?/, '')}</a>}
                       </td>
                       <td className="px-5 py-3 text-slate-600">{lead.locality ?? '—'}<span className="block text-xs text-slate-400">{lead.postcode}</span></td>
                       <td className="px-5 py-3 text-slate-600">{lead.directors.slice(0, 2).join(', ') || '—'}{lead.directors.length > 2 && <span className="text-xs text-slate-400"> +{lead.directors.length - 2}</span>}</td>
@@ -431,6 +461,9 @@ const Leads: React.FC = () => {
               </div>
             </div>
             <div><label className={labelClass}>Notes</label><textarea rows={3} value={leadForm.notes} onChange={(e) => setLeadForm({ ...leadForm, notes: e.target.value })} className={inputClass} /></div>
+            {selected.email_source_url && (
+              <p className="text-xs text-slate-500">Email found on <a href={selected.email_source_url} target="_blank" rel="noopener noreferrer" className="text-accent-dark underline">{selected.email_source_url}</a> ({selected.email_confidence} confidence).</p>
+            )}
             <p className="text-xs text-slate-500">
               Find the website with a quick search:{' '}
               <a href={`https://www.google.com/search?q=${encodeURIComponent(`"${selected.company_name}" ${selected.locality ?? ''}`)}`} target="_blank" rel="noopener noreferrer" className="text-accent-dark underline">Google ↗</a>

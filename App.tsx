@@ -16,6 +16,7 @@ const Verify = lazy(() => import('./pages/Verify'));
 const Company = lazy(() => import('./pages/Company'));
 const Contact = lazy(() => import('./pages/Contact'));
 const ThankYou = lazy(() => import('./pages/ThankYou'));
+const Unsubscribe = lazy(() => import('./pages/Unsubscribe'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Lazy load legal pages
@@ -78,6 +79,7 @@ const App: React.FC = () => {
                   <Route path="/company" element={<Company />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/thank-you" element={<ThankYou />} />
+                  <Route path="/unsubscribe" element={<Unsubscribe />} />
                   <Route path="/legal/terms" element={<TermsAndConditions />} />
                   <Route path="/legal/privacy" element={<PrivacyPolicy />} />
                   <Route path="/legal/refunds" element={<RefundPolicy />} />

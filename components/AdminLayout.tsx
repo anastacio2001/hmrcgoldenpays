@@ -10,6 +10,7 @@ const menuGroups = [
     items: [
       { name: 'Dashboard', path: '/admin/dashboard' },
       { name: 'Leads', path: '/admin/leads' },
+      { name: 'Outreach', path: '/admin/outreach' },
       { name: 'Inquiries', path: '/admin/inquiries' },
       { name: 'Clients', path: '/admin/clients' },
       { name: 'Projects', path: '/admin/projects' },

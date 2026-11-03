@@ -150,6 +150,9 @@ export interface Lead {
   status: LeadStatus;
   notes: string | null;
   search_id: string | null;
+  email_confidence: 'high' | 'medium' | 'manual' | null;
+  email_source_url: string | null;
+  enrichment_checked_at: string | null;
   last_contacted_at: string | null;
   created_at: string;
 }
@@ -170,6 +173,7 @@ export interface LeadSearch {
   offering: 'licence' | 'sprint' | 'integration' | 'cloud' | null;
   priority: 1 | 2 | 3;
   incorporated_within_days: number | null;
+  pain_topic: string | null;
   last_run_at: string | null;
   last_found: number | null;
   last_inserted: number | null;
@@ -185,4 +189,43 @@ export interface LeadRun {
   found: number;
   inserted: number;
   error: string | null;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  send_mode: 'manual' | 'automatic';
+  daily_limit: number;
+  from_name: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface CampaignStep {
+  id: string;
+  campaign_id: string;
+  step_number: number;
+  delay_days: number;
+  subject: string;
+  body: string;
+}
+
+export interface CampaignEnrollment {
+  id: string;
+  campaign_id: string;
+  lead_id: string;
+  current_step: number;
+  next_due_on: string;
+  status: 'active' | 'completed' | 'stopped';
+  stopped_reason: string | null;
+  unsubscribe_token: string;
+  created_at: string;
+}
+
+export interface Suppression {
+  id: string;
+  email: string | null;
+  company_number: string | null;
+  reason: 'unsubscribed' | 'excluded' | 'bounced' | 'complaint' | 'manual';
+  created_at: string;
 }
