@@ -5,14 +5,15 @@ import { displayCompanyName } from '../../../lib/outreach';
 import { COMPANY } from '../../../data/site';
 import { Card, Empty, ErrorBox, btn, btnGhost, inputClass, labelClass } from '../ui';
 
-const letterRef = (lead: Lead) => `L-${lead.company_number}`;
-const responseUrl = (lead: Lead, search?: LeadSearch) =>
+export const letterRef = (lead: Lead) => `L-${lead.company_number}`;
+export const responseUrl = (lead: Lead, search?: LeadSearch) =>
   `https://goldenpays.uk/contact?ref=${letterRef(lead)}${search?.offering ? `&package=${search.offering}` : ''}`;
 
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 const titleCase = (s: string) => s.toLowerCase().replace(/(^|[\s'-])\p{L}/gu, (m) => m.toUpperCase());
 
-const Letter: React.FC<{ lead: Lead; search?: LeadSearch; qr: string }> = ({ lead, search, qr }) => {
+// `body` replaces the sector template with an approved AI-written letter (paragraphs separated by blank lines).
+export const Letter: React.FC<{ lead: Lead; search?: LeadSearch; qr: string; body?: string | null }> = ({ lead, search, qr, body }) => {
   const company = displayCompanyName(lead.company_name);
   const director = lead.contact_name ?? lead.directors[0];
   const topic = search?.pain_topic ?? 'manual admin';
@@ -41,6 +42,7 @@ const Letter: React.FC<{ lead: Lead; search?: LeadSearch; qr: string }> = ({ lea
       <p className="mt-6">Dear {director ? titleCase(director) : 'Director'},</p>
       <p className="mt-4 font-semibold text-obsidian">{topic.charAt(0).toUpperCase() + topic.slice(1)} at {company}: a fixed-price fix</p>
 
+      {body ? body.split(/\n\s*\n/).map((para, i) => <p key={i} className={i === 0 ? 'mt-4' : 'mt-3'}>{para.trim()}</p>) : (<>
       <p className="mt-4">
         I am writing because {(search?.segment ?? 'UK').toLowerCase()} businesses{lead.locality ? ` in ${titleCase(lead.locality)}` : ''} keep telling us the same thing: {lowerFirst(search?.pain_point ?? 'too much of the week goes on manual admin between disconnected tools.')}
       </p>
@@ -50,6 +52,7 @@ const Letter: React.FC<{ lead: Lead; search?: LeadSearch; qr: string }> = ({ lea
       <p className="mt-3">
         I would like to offer {company} a <b>free 20-minute automation check</b>. I will look at how you currently handle {topic} and tell you, in writing, what could be automated and what it would cost. If it is not worth doing, I will say so.
       </p>
+      </>)}
 
       <div className="mt-5 flex items-center gap-5 rounded-lg border border-steel p-4">
         <img src={qr} alt="" className="h-[26mm] w-[26mm]" />

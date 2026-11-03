@@ -8,6 +8,7 @@ import AdminLogin from './AdminLogin';
 const Dashboard = lazy(() => import('./Dashboard'));
 const Leads = lazy(() => import('./Leads'));
 const Outreach = lazy(() => import('./Outreach'));
+const Content = lazy(() => import('./Content'));
 const Inquiries = lazy(() => import('./Inquiries'));
 const Clients = lazy(() => import('./Clients'));
 const Projects = lazy(() => import('./Projects'));
@@ -32,6 +33,7 @@ const AdminApp: React.FC = () => (
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="leads" element={<Leads />} />
               <Route path="outreach" element={<Outreach />} />
+              <Route path="content" element={<Content />} />
               <Route path="inquiries" element={<Inquiries />} />
               <Route path="clients" element={<Clients />} />
               <Route path="projects" element={<Projects />} />

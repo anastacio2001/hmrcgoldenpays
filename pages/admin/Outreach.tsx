@@ -4,8 +4,9 @@ import { VARIABLES, displayCompanyName, mailtoLink, renderEmail, templateVars } 
 import { Badge, Card, Empty, ErrorBox, PageTitle, Spinner, Stat, btn, btnDanger, btnGhost, formatDate, inputClass, labelClass } from './ui';
 import CallTasks from './outreach/CallTasks';
 import Letters from './outreach/Letters';
+import LeadPacks from './outreach/LeadPacks';
 
-type Tab = 'today' | 'calls' | 'letters' | 'sequence' | 'enrolled' | 'optouts';
+type Tab = 'packs' | 'today' | 'calls' | 'letters' | 'sequence' | 'enrolled' | 'optouts';
 type DueItem = CampaignEnrollment & { leads: Lead };
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -16,7 +17,7 @@ const addDays = (days: number) => {
 };
 
 const Outreach: React.FC = () => {
-  const [tab, setTab] = useState<Tab>('today');
+  const [tab, setTab] = useState<Tab>('packs');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [steps, setSteps] = useState<CampaignStep[]>([]);
   const [searches, setSearches] = useState<LeadSearch[]>([]);
@@ -79,7 +80,11 @@ const Outreach: React.FC = () => {
   const searchById = useMemo(() => Object.fromEntries(searches.map((s) => [s.id, s])), [searches]);
 
   const renderFor = (item: DueItem) => {
-    const step = steps.find((s) => s.step_number === item.current_step);
+    // Approved AI lead packs carry their own personalised emails.
+    const custom = item.custom_steps?.find((c) => c.step === item.current_step);
+    const step = custom
+      ? { subject: custom.subject, body: `${custom.body}\n\n{{signature}}` }
+      : steps.find((s) => s.step_number === item.current_step);
     if (!step || !campaign) return null;
     return renderEmail(step.subject, step.body, templateVars(item.leads, searchById[item.leads.search_id ?? ''], campaign.from_name, item.unsubscribe_token));
   };
@@ -209,12 +214,13 @@ const Outreach: React.FC = () => {
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {([['today', `Email · today (${queue.length})`], ['calls', 'Calls & LinkedIn'], ['letters', 'Letters'], ['sequence', 'Email sequence'], ['enrolled', `Enrolled (${enrolled.length})`], ['optouts', `Opt-outs (${suppressions.length})`]] as [Tab, string][]).map(([t, label]) => (
+        {([['packs', 'AI lead packs'], ['today', `Email · today (${queue.length})`], ['calls', 'Calls & LinkedIn'], ['letters', 'Letters'], ['sequence', 'Email sequence'], ['enrolled', `Enrolled (${enrolled.length})`], ['optouts', `Opt-outs (${suppressions.length})`]] as [Tab, string][]).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} className={`rounded-full px-4 py-1.5 text-sm font-semibold ${tab === t ? 'bg-obsidian text-white' : 'bg-white text-slate-600 hover:bg-mist'}`}>{label}</button>
         ))}
       </div>
       </div>
 
+      {tab === 'packs' && <LeadPacks campaignId={campaign!.id} searches={searchById} onPrintMode={setPrintMode} />}
       {tab === 'calls' && <CallTasks searches={searchById} />}
       {tab === 'letters' && <Letters searches={searches} onPrintMode={setPrintMode} />}
 

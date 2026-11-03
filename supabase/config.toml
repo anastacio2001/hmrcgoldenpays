@@ -11,3 +11,7 @@ verify_jwt = false
 # Called by pg_cron (shared secret) and by the admin UI (JWT checked inside the function).
 [functions.enrich-leads]
 verify_jwt = false
+
+# Called by pg_cron (shared secret) and by the admin UI (JWT checked inside the function).
+[functions.ai-agent]
+verify_jwt = false

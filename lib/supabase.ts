@@ -225,6 +225,7 @@ export interface CampaignEnrollment {
   status: 'active' | 'completed' | 'stopped';
   stopped_reason: string | null;
   unsubscribe_token: string;
+  custom_steps: { step: number; subject: string; body: string }[] | null;
   created_at: string;
 }
 
@@ -247,5 +248,43 @@ export interface LeadActivity {
   channel: ActivityChannel;
   outcome: ActivityOutcome | null;
   notes: string | null;
+  created_at: string;
+}
+
+export interface LeadBrief {
+  id: string;
+  lead_id: string;
+  fit_score: number;
+  summary: string;
+  pains: { pain: string; evidence: string; source: string }[];
+  recommended_offering: 'licence' | 'sprint' | 'integration' | 'cloud' | 'none' | null;
+  red_flags: string[];
+  emails: { step: number; subject: string; body: string }[];
+  letter: string | null;
+  linkedin_note: string | null;
+  call_opener: string | null;
+  status: 'draft' | 'approved' | 'rejected';
+  model: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContentPost {
+  id: string;
+  pillar: string;
+  format: 'post' | 'carousel' | 'poll' | 'article';
+  segment: string | null;
+  title: string;
+  hook: string | null;
+  body: string;
+  hashtags: string[];
+  cta: string | null;
+  image_idea: string | null;
+  status: 'draft' | 'approved' | 'posted' | 'archived';
+  scheduled_for: string | null;
+  posted_at: string | null;
+  model: string | null;
   created_at: string;
 }
